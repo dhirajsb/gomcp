@@ -1,0 +1,94 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Go module proxy cache
+GOPROXY
+GOSUMDB
+GOPRIVATE
+
+# Go build cache
+.cache/go-build/
+
+# Air (live reloading tool) temporary files
+tmp/
+
+# Delve debugger files
+__debug_bin*
+
+# Go profiling files
+*.prof
+*.trace
+
+# gomcp specific binaries
+main
+gomcp
+*.bin
+
+# Build directory
+build/
+dist/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Coverage files
+coverage/
+coverage.out
+coverage.html
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Temporary files
+tmp/
+temp/
+
+# Cache directories
+.cache/
+
+# Documentation build output
+docs/api/
+
+# Editor backup files
+*~
+*.tmp
+*.bak
+
+# Go mod cache (if using local cache)
+go.sum.backup
