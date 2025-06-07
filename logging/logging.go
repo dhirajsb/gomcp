@@ -2,9 +2,7 @@ package logging
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"runtime"
 	"strings"
@@ -46,23 +44,23 @@ func (l LogLevel) String() string {
 
 // LogEntry represents a single log entry
 type LogEntry struct {
-	Timestamp   time.Time              `json:"timestamp"`
-	Level       LogLevel               `json:"level"`
-	Message     string                 `json:"message"`
-	Fields      map[string]interface{} `json:"fields,omitempty"`
-	Logger      string                 `json:"logger,omitempty"`
-	Component   string                 `json:"component,omitempty"`
-	UserID      string                 `json:"user_id,omitempty"`
-	SessionID   string                 `json:"session_id,omitempty"`
-	RequestID   string                 `json:"request_id,omitempty"`
-	TraceID     string                 `json:"trace_id,omitempty"`
-	SpanID      string                 `json:"span_id,omitempty"`
-	Caller      *CallerInfo            `json:"caller,omitempty"`
-	Stack       string                 `json:"stack,omitempty"`
-	Duration    time.Duration          `json:"duration,omitempty"`
-	Error       string                 `json:"error,omitempty"`
-	Tags        []string               `json:"tags,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
+	Level     LogLevel               `json:"level"`
+	Message   string                 `json:"message"`
+	Fields    map[string]interface{} `json:"fields,omitempty"`
+	Logger    string                 `json:"logger,omitempty"`
+	Component string                 `json:"component,omitempty"`
+	UserID    string                 `json:"user_id,omitempty"`
+	SessionID string                 `json:"session_id,omitempty"`
+	RequestID string                 `json:"request_id,omitempty"`
+	TraceID   string                 `json:"trace_id,omitempty"`
+	SpanID    string                 `json:"span_id,omitempty"`
+	Caller    *CallerInfo            `json:"caller,omitempty"`
+	Stack     string                 `json:"stack,omitempty"`
+	Duration  time.Duration          `json:"duration,omitempty"`
+	Error     string                 `json:"error,omitempty"`
+	Tags      []string               `json:"tags,omitempty"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // CallerInfo holds information about the caller
@@ -81,7 +79,7 @@ type Logger interface {
 	Warn(msg string, fields ...Field)
 	Error(msg string, fields ...Field)
 	Fatal(msg string, fields ...Field)
-	
+
 	// Formatted logging methods
 	Tracef(format string, args ...interface{})
 	Debugf(format string, args ...interface{})
@@ -89,7 +87,7 @@ type Logger interface {
 	Warnf(format string, args ...interface{})
 	Errorf(format string, args ...interface{})
 	Fatalf(format string, args ...interface{})
-	
+
 	// Context-aware logging
 	WithContext(ctx context.Context) Logger
 	WithFields(fields ...Field) Logger
@@ -100,20 +98,20 @@ type Logger interface {
 	WithTrace(traceID, spanID string) Logger
 	WithError(err error) Logger
 	WithTags(tags ...string) Logger
-	
+
 	// Configuration
 	SetLevel(level LogLevel)
 	GetLevel() LogLevel
 	IsEnabled(level LogLevel) bool
-	
+
 	// Output management
 	AddOutput(output LogOutput) error
 	RemoveOutput(name string) error
 	SetFormatter(formatter LogFormatter)
-	
+
 	// Metrics
 	GetStats() LoggerStats
-	
+
 	// Lifecycle
 	Flush() error
 	Close() error
@@ -142,65 +140,65 @@ type LogFormatter interface {
 
 // LoggerConfig holds logger configuration
 type LoggerConfig struct {
-	Name         string                 `json:"name"`
-	Level        LogLevel               `json:"level"`
-	Component    string                 `json:"component"`
-	Outputs      []OutputConfig         `json:"outputs"`
-	Formatter    string                 `json:"formatter"`    // "json", "text", "logfmt"
-	IncludeCaller bool                  `json:"include_caller"`
-	IncludeStack bool                   `json:"include_stack"`
-	Async        bool                   `json:"async"`
-	BufferSize   int                    `json:"buffer_size"`
-	FlushInterval time.Duration         `json:"flush_interval"`
-	Config       map[string]interface{} `json:"config"`
+	Name          string                 `json:"name"`
+	Level         LogLevel               `json:"level"`
+	Component     string                 `json:"component"`
+	Outputs       []OutputConfig         `json:"outputs"`
+	Formatter     string                 `json:"formatter"` // "json", "text", "logfmt"
+	IncludeCaller bool                   `json:"include_caller"`
+	IncludeStack  bool                   `json:"include_stack"`
+	Async         bool                   `json:"async"`
+	BufferSize    int                    `json:"buffer_size"`
+	FlushInterval time.Duration          `json:"flush_interval"`
+	Config        map[string]interface{} `json:"config"`
 }
 
 // OutputConfig holds output configuration
 type OutputConfig struct {
-	Name     string                 `json:"name"`
-	Type     string                 `json:"type"`     // "file", "stdout", "stderr", "syslog", "webhook", "elasticsearch"
-	Level    LogLevel               `json:"level"`    // Minimum level for this output
-	Enabled  bool                   `json:"enabled"`
-	Config   map[string]interface{} `json:"config"`
+	Name    string                 `json:"name"`
+	Type    string                 `json:"type"`  // "file", "stdout", "stderr", "syslog", "webhook", "elasticsearch"
+	Level   LogLevel               `json:"level"` // Minimum level for this output
+	Enabled bool                   `json:"enabled"`
+	Config  map[string]interface{} `json:"config"`
 }
 
 // LoggerStats holds logger statistics
 type LoggerStats struct {
-	Name         string        `json:"name"`
-	Level        LogLevel      `json:"level"`
-	TotalEntries int64         `json:"total_entries"`
-	EntriesByLevel map[LogLevel]int64 `json:"entries_by_level"`
-	ErrorCount   int64         `json:"error_count"`
-	LastEntry    time.Time     `json:"last_entry"`
-	Uptime       time.Duration `json:"uptime"`
-	OutputStats  map[string]OutputStats `json:"output_stats"`
+	Name           string                 `json:"name"`
+	Level          LogLevel               `json:"level"`
+	TotalEntries   int64                  `json:"total_entries"`
+	EntriesByLevel map[LogLevel]int64     `json:"entries_by_level"`
+	ErrorCount     int64                  `json:"error_count"`
+	LastEntry      time.Time              `json:"last_entry"`
+	Uptime         time.Duration          `json:"uptime"`
+	OutputStats    map[string]OutputStats `json:"output_stats"`
 }
 
 // OutputStats holds output statistics
 type OutputStats struct {
-	Name         string    `json:"name"`
-	Type         string    `json:"type"`
-	Entries      int64     `json:"entries"`
-	Errors       int64     `json:"errors"`
-	LastWrite    time.Time `json:"last_write"`
-	LastError    string    `json:"last_error"`
+	Name      string    `json:"name"`
+	Type      string    `json:"type"`
+	Entries   int64     `json:"entries"`
+	Errors    int64     `json:"errors"`
+	LastWrite time.Time `json:"last_write"`
+	LastError string    `json:"last_error"`
 }
 
 // StandardLogger implements the Logger interface
 type StandardLogger struct {
-	config        LoggerConfig
-	level         LogLevel
-	outputs       map[string]LogOutput
-	formatter     LogFormatter
-	fields        map[string]interface{}
-	component     string
-	stats         *LoggerStats
-	entryChan     chan *LogEntry
-	mu            sync.RWMutex
-	wg            sync.WaitGroup
-	ctx           context.Context
-	cancel        context.CancelFunc
-	startTime     time.Time
+	config    LoggerConfig
+	level     LogLevel
+	outputs   map[string]LogOutput
+	formatter LogFormatter
+	fields    map[string]interface{}
+	component string
+	stats     *LoggerStats
+	entryChan chan *LogEntry
+	mu        sync.RWMutex
+	wg        sync.WaitGroup
+	ctx       context.Context
+	cancel    context.CancelFunc
+	startTime time.Time
 }
 
 // NewLogger creates a new standard logger
@@ -214,9 +212,9 @@ func NewLogger(config LoggerConfig) (*StandardLogger, error) {
 	if config.FlushInterval == 0 {
 		config.FlushInterval = 5 * time.Second
 	}
-	
+
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	logger := &StandardLogger{
 		config:    config,
 		level:     config.Level,
@@ -233,30 +231,30 @@ func NewLogger(config LoggerConfig) (*StandardLogger, error) {
 		cancel:    cancel,
 		startTime: time.Now(),
 	}
-	
+
 	// Set formatter
 	if err := logger.setFormatter(config.Formatter); err != nil {
 		return nil, fmt.Errorf("failed to set formatter: %w", err)
 	}
-	
+
 	// Initialize outputs
 	for _, outputConfig := range config.Outputs {
 		if err := logger.addOutput(outputConfig); err != nil {
 			return nil, fmt.Errorf("failed to add output %s: %w", outputConfig.Name, err)
 		}
 	}
-	
+
 	// Start async processing if enabled
 	if config.Async {
 		logger.entryChan = make(chan *LogEntry, config.BufferSize)
 		logger.wg.Add(1)
 		go logger.processEntries()
-		
+
 		// Start flush timer
 		logger.wg.Add(1)
 		go logger.flushTimer()
 	}
-	
+
 	return logger, nil
 }
 
@@ -279,7 +277,7 @@ func (l *StandardLogger) setFormatter(formatterType string) error {
 func (l *StandardLogger) addOutput(config OutputConfig) error {
 	var output LogOutput
 	var err error
-	
+
 	switch config.Type {
 	case "stdout":
 		output = NewConsoleOutput(config.Name, os.Stdout, config)
@@ -296,17 +294,17 @@ func (l *StandardLogger) addOutput(config OutputConfig) error {
 	default:
 		return fmt.Errorf("unknown output type: %s", config.Type)
 	}
-	
+
 	if err != nil {
 		return err
 	}
-	
+
 	l.outputs[config.Name] = output
 	l.stats.OutputStats[config.Name] = OutputStats{
 		Name: config.Name,
 		Type: config.Type,
 	}
-	
+
 	return nil
 }
 
@@ -315,9 +313,9 @@ func (l *StandardLogger) log(level LogLevel, msg string, fields ...Field) {
 	if !l.IsEnabled(level) {
 		return
 	}
-	
+
 	entry := l.createEntry(level, msg, fields...)
-	
+
 	if l.config.Async {
 		select {
 		case l.entryChan <- entry:
@@ -334,7 +332,7 @@ func (l *StandardLogger) log(level LogLevel, msg string, fields ...Field) {
 func (l *StandardLogger) createEntry(level LogLevel, msg string, fields ...Field) *LogEntry {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	
+
 	entry := &LogEntry{
 		Timestamp: time.Now(),
 		Level:     level,
@@ -343,29 +341,29 @@ func (l *StandardLogger) createEntry(level LogLevel, msg string, fields ...Field
 		Logger:    l.config.Name,
 		Component: l.component,
 	}
-	
+
 	// Add logger fields
 	for k, v := range l.fields {
 		entry.Fields[k] = v
 	}
-	
+
 	// Add entry fields
 	for _, field := range fields {
 		entry.Fields[field.Key] = field.Value
 	}
-	
+
 	// Add caller info if enabled
 	if l.config.IncludeCaller {
 		if caller := getCaller(3); caller != nil {
 			entry.Caller = caller
 		}
 	}
-	
+
 	// Add stack trace if enabled and error level
 	if l.config.IncludeStack && level >= LogLevelError {
 		entry.Stack = getStack(3)
 	}
-	
+
 	return entry
 }
 
@@ -373,11 +371,11 @@ func (l *StandardLogger) createEntry(level LogLevel, msg string, fields ...Field
 func (l *StandardLogger) writeEntry(entry *LogEntry) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	
+
 	l.stats.TotalEntries++
 	l.stats.EntriesByLevel[entry.Level]++
 	l.stats.LastEntry = entry.Timestamp
-	
+
 	for name, output := range l.outputs {
 		if err := output.Write(entry); err != nil {
 			l.stats.ErrorCount++
@@ -397,7 +395,7 @@ func (l *StandardLogger) writeEntry(entry *LogEntry) {
 // processEntries processes log entries asynchronously
 func (l *StandardLogger) processEntries() {
 	defer l.wg.Done()
-	
+
 	for {
 		select {
 		case entry := <-l.entryChan:
@@ -419,10 +417,10 @@ func (l *StandardLogger) processEntries() {
 // flushTimer periodically flushes outputs
 func (l *StandardLogger) flushTimer() {
 	defer l.wg.Done()
-	
+
 	ticker := time.NewTicker(l.config.FlushInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -470,7 +468,7 @@ func (l *StandardLogger) Fatalf(format string, args ...interface{}) {
 // WithContext creates a logger with context
 func (l *StandardLogger) WithContext(ctx context.Context) Logger {
 	newLogger := l.copy()
-	
+
 	// Extract context values
 	if userID := ctx.Value("user_id"); userID != nil {
 		if uid, ok := userID.(string); ok {
@@ -497,7 +495,7 @@ func (l *StandardLogger) WithContext(ctx context.Context) Logger {
 			newLogger.fields["span_id"] = sid
 		}
 	}
-	
+
 	return newLogger
 }
 
@@ -564,12 +562,12 @@ func (l *StandardLogger) WithTags(tags ...string) Logger {
 func (l *StandardLogger) copy() *StandardLogger {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	
+
 	newFields := make(map[string]interface{})
 	for k, v := range l.fields {
 		newFields[k] = v
 	}
-	
+
 	return &StandardLogger{
 		config:    l.config,
 		level:     l.level,
@@ -607,26 +605,26 @@ func (l *StandardLogger) IsEnabled(level LogLevel) bool {
 func (l *StandardLogger) AddOutput(output LogOutput) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	l.outputs[output.Name()] = output
 	l.stats.OutputStats[output.Name()] = OutputStats{
 		Name: output.Name(),
 		Type: output.Type(),
 	}
-	
+
 	return nil
 }
 
 func (l *StandardLogger) RemoveOutput(name string) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	if output, exists := l.outputs[name]; exists {
 		output.Close()
 		delete(l.outputs, name)
 		delete(l.stats.OutputStats, name)
 	}
-	
+
 	return nil
 }
 
@@ -640,7 +638,7 @@ func (l *StandardLogger) SetFormatter(formatter LogFormatter) {
 func (l *StandardLogger) GetStats() LoggerStats {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	
+
 	stats := *l.stats // Copy stats
 	stats.Uptime = time.Since(l.startTime)
 	return stats
@@ -650,14 +648,14 @@ func (l *StandardLogger) GetStats() LoggerStats {
 func (l *StandardLogger) Flush() error {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	
+
 	var lastErr error
 	for _, output := range l.outputs {
 		if err := output.Flush(); err != nil {
 			lastErr = err
 		}
 	}
-	
+
 	return lastErr
 }
 
@@ -667,18 +665,18 @@ func (l *StandardLogger) Close() error {
 		l.cancel()
 	}
 	l.wg.Wait()
-	
+
 	// Close all outputs
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	var lastErr error
 	for _, output := range l.outputs {
 		if err := output.Close(); err != nil {
 			lastErr = err
 		}
 	}
-	
+
 	return lastErr
 }
 
@@ -688,17 +686,17 @@ func getCaller(skip int) *CallerInfo {
 	if !ok {
 		return nil
 	}
-	
+
 	fn := runtime.FuncForPC(pc)
 	if fn == nil {
 		return nil
 	}
-	
+
 	// Get short file name
 	if idx := strings.LastIndex(file, "/"); idx >= 0 {
 		file = file[idx+1:]
 	}
-	
+
 	return &CallerInfo{
 		File:     file,
 		Line:     line,
@@ -713,11 +711,11 @@ func getStack(skip int) string {
 }
 
 // Helper functions for creating fields
-func String(key, value string) Field          { return Field{Key: key, Value: value} }
-func Int(key string, value int) Field         { return Field{Key: key, Value: value} }
-func Int64(key string, value int64) Field     { return Field{Key: key, Value: value} }
-func Float64(key string, value float64) Field { return Field{Key: key, Value: value} }
-func Bool(key string, value bool) Field       { return Field{Key: key, Value: value} }
+func String(key, value string) Field                 { return Field{Key: key, Value: value} }
+func Int(key string, value int) Field                { return Field{Key: key, Value: value} }
+func Int64(key string, value int64) Field            { return Field{Key: key, Value: value} }
+func Float64(key string, value float64) Field        { return Field{Key: key, Value: value} }
+func Bool(key string, value bool) Field              { return Field{Key: key, Value: value} }
 func Duration(key string, value time.Duration) Field { return Field{Key: key, Value: value} }
-func Time(key string, value time.Time) Field  { return Field{Key: key, Value: value} }
-func Any(key string, value interface{}) Field { return Field{Key: key, Value: value} }
+func Time(key string, value time.Time) Field         { return Field{Key: key, Value: value} }
+func Any(key string, value interface{}) Field        { return Field{Key: key, Value: value} }

@@ -9,10 +9,13 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/dhirajsb/gomcp/telemetry"
 	"github.com/dhirajsb/gomcp/transport"
 	"github.com/dhirajsb/gomcp/types"
 	"github.com/go-playground/validator/v10"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Handler interface for all MCP handlers
@@ -31,6 +34,8 @@ type Server struct {
 	resources map[string]Handler
 	prompts   map[string]Handler
 	validator *validator.Validate
+	metrics   *ServerMetrics
+	tracer    trace.Tracer
 	mu        sync.RWMutex
 }
 
@@ -58,7 +63,13 @@ func NewServer(name, version string) *Server {
 		resources: make(map[string]Handler),
 		prompts:   make(map[string]Handler),
 		validator: validator.New(),
+		metrics:   NewServerMetrics(),
 	}
+}
+
+// SetTracer sets the OpenTelemetry tracer for distributed tracing
+func (s *Server) SetTracer(tracer trace.Tracer) {
+	s.tracer = tracer
 }
 
 // RegisterTool registers a function as a tool
@@ -154,8 +165,32 @@ func (s *Server) handleConnection(conn transport.Connection) {
 }
 
 func (s *Server) handleMessage(ctx context.Context, data []byte) interface{} {
+	start := time.Now()
+
+	// Start distributed tracing span
+	var span trace.Span
+	if s.tracer != nil {
+		ctx, span = telemetry.StartSpan(ctx, s.tracer, "mcp.handle_message",
+			telemetry.NewSpanAttributeBuilder().
+				Component("mcp").
+				Operation("handle_message").
+				String("mcp.server_name", s.info.Name).
+				String("mcp.server_version", s.info.Version).
+				Int("mcp.request_size_bytes", len(data)).
+				Build()...)
+		defer span.End()
+	}
+
+	// Record request size
+	s.metrics.RecordRequestSize(int64(len(data)))
+
 	var req types.Request
 	if err := json.Unmarshal(data, &req); err != nil {
+		s.metrics.RecordError(err)
+		if span != nil {
+			telemetry.RecordError(span, err)
+			telemetry.AddEvent(span, "mcp.request.parse_error")
+		}
 		return &types.Response{
 			Message: types.Message{
 				JSONRPC: "2.0",
@@ -166,6 +201,14 @@ func (s *Server) handleMessage(ctx context.Context, data []byte) interface{} {
 				Message: "Parse error",
 			},
 		}
+	}
+
+	// Add request details to span
+	if span != nil {
+		telemetry.SetSpanAttributes(span, telemetry.NewSpanAttributeBuilder().
+			MCP(req.Method, "").
+			String("mcp.request_id", fmt.Sprintf("%v", req.ID)).
+			Build()...)
 	}
 
 	response := &types.Response{
@@ -260,6 +303,39 @@ func (s *Server) handleMessage(ctx context.Context, data []byte) interface{} {
 		}
 	}
 
+	// Record request metrics
+	latency := time.Since(start)
+	success := response.Error == nil
+	s.metrics.RecordRequest(req.Method, success, latency)
+
+	// Record response size (approximate)
+	responseSize := 0
+	if responseData, err := json.Marshal(response); err == nil {
+		responseSize = len(responseData)
+		s.metrics.RecordResponseSize(int64(responseSize))
+	}
+
+	// Record final span attributes
+	if span != nil {
+		telemetry.SetSpanAttributes(span, telemetry.NewSpanAttributeBuilder().
+			Bool("mcp.success", success).
+			Float64("mcp.latency_ms", float64(latency.Nanoseconds())/1000000.0).
+			Int("mcp.response_size_bytes", responseSize).
+			Build()...)
+
+		if success {
+			telemetry.AddEvent(span, "mcp.request.completed")
+			telemetry.RecordSuccess(span)
+		} else {
+			telemetry.AddEvent(span, "mcp.request.failed")
+			telemetry.SetSpanAttributes(span, telemetry.NewSpanAttributeBuilder().
+				String("mcp.error_code", fmt.Sprintf("%d", response.Error.Code)).
+				String("mcp.error_message", response.Error.Message).
+				Build()...)
+			telemetry.RecordSuccess(span) // Still successful handling, just errored result
+		}
+	}
+
 	return response
 }
 
@@ -288,9 +364,34 @@ func (s *Server) handleToolsList(ctx context.Context) (*types.ToolsListResult, e
 }
 
 func (s *Server) handleToolsCall(ctx context.Context, params interface{}) (*types.ToolsCallResult, error) {
+	// Start distributed tracing span
+	var span trace.Span
+	if s.tracer != nil {
+		ctx, span = telemetry.StartSpan(ctx, s.tracer, "mcp.tools.call",
+			telemetry.NewSpanAttributeBuilder().
+				Component("mcp").
+				Operation("tools_call").
+				Build()...)
+		defer span.End()
+	}
+
+	start := time.Now()
+
 	var req types.ToolsCallRequest
 	if err := s.unmarshalParams(params, &req); err != nil {
+		if span != nil {
+			telemetry.RecordError(span, err)
+		}
 		return nil, err
+	}
+
+	// Add tool details to span
+	if span != nil {
+		telemetry.SetSpanAttributes(span, telemetry.NewSpanAttributeBuilder().
+			MCP("tools/call", req.Name).
+			String("mcp.tool_name", req.Name).
+			Int("mcp.argument_count", len(req.Arguments)).
+			Build()...)
 	}
 
 	s.mu.RLock()
@@ -298,11 +399,35 @@ func (s *Server) handleToolsCall(ctx context.Context, params interface{}) (*type
 	s.mu.RUnlock()
 
 	if !exists {
-		return nil, fmt.Errorf("tool not found: %s", req.Name)
+		s.metrics.RecordToolInvocation(req.Name, false, time.Since(start))
+		err := fmt.Errorf("tool not found: %s", req.Name)
+		if span != nil {
+			telemetry.AddEvent(span, "mcp.tool.not_found")
+			telemetry.RecordError(span, err)
+		}
+		return nil, err
+	}
+
+	if span != nil {
+		telemetry.AddEvent(span, "mcp.tool.found")
+		telemetry.SetSpanAttributes(span, telemetry.NewSpanAttributeBuilder().
+			String("mcp.tool_description", handler.Description()).
+			Build()...)
 	}
 
 	result, err := handler.Call(ctx, req.Arguments)
+	latency := time.Since(start)
+
 	if err != nil {
+		s.metrics.RecordToolInvocation(req.Name, false, latency)
+		if span != nil {
+			telemetry.AddEvent(span, "mcp.tool.execution_failed")
+			telemetry.SetSpanAttributes(span, telemetry.NewSpanAttributeBuilder().
+				Bool("mcp.tool_success", false).
+				Float64("mcp.tool_latency_ms", float64(latency.Nanoseconds())/1000000.0).
+				Build()...)
+			telemetry.RecordError(span, err)
+		}
 		return &types.ToolsCallResult{
 			IsError: true,
 			Content: []types.ContentItem{{
@@ -314,6 +439,18 @@ func (s *Server) handleToolsCall(ctx context.Context, params interface{}) (*type
 
 	// Convert result to content
 	content := s.resultToContent(result)
+
+	s.metrics.RecordToolInvocation(req.Name, true, latency)
+
+	if span != nil {
+		telemetry.AddEvent(span, "mcp.tool.execution_completed")
+		telemetry.SetSpanAttributes(span, telemetry.NewSpanAttributeBuilder().
+			Bool("mcp.tool_success", true).
+			Float64("mcp.tool_latency_ms", float64(latency.Nanoseconds())/1000000.0).
+			Int("mcp.tool_result_items", len(content)).
+			Build()...)
+		telemetry.RecordSuccess(span)
+	}
 
 	return &types.ToolsCallResult{
 		Content: content,
@@ -648,4 +785,19 @@ func getFunctionDescription(fn interface{}) string {
 	}
 
 	return "Go function"
+}
+
+// GetMetrics returns server metrics
+func (s *Server) GetMetrics() map[string]interface{} {
+	return s.metrics.GetStats()
+}
+
+// GetMethodMetrics returns method-specific metrics
+func (s *Server) GetMethodMetrics() map[string]*MethodMetrics {
+	return s.metrics.GetMethodStats()
+}
+
+// GetConnectionMetrics returns connection metrics
+func (s *Server) GetConnectionMetrics() map[string]interface{} {
+	return s.metrics.GetConnectionStats()
 }

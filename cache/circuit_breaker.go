@@ -16,11 +16,11 @@ const (
 
 // CircuitBreakerConfig holds circuit breaker configuration
 type CircuitBreakerConfig struct {
-	MaxFailures   int           `json:"max_failures"`   // Maximum failures before opening
-	Timeout       time.Duration `json:"timeout"`        // Timeout before trying half-open
-	ResetTimeout  time.Duration `json:"reset_timeout"`  // Timeout before resetting to closed
-	FailureRatio  float64       `json:"failure_ratio"`  // Failure ratio threshold (0.0-1.0)
-	MinRequests   int           `json:"min_requests"`   // Minimum requests before evaluating ratio
+	MaxFailures  int           `json:"max_failures"`  // Maximum failures before opening
+	Timeout      time.Duration `json:"timeout"`       // Timeout before trying half-open
+	ResetTimeout time.Duration `json:"reset_timeout"` // Timeout before resetting to closed
+	FailureRatio float64       `json:"failure_ratio"` // Failure ratio threshold (0.0-1.0)
+	MinRequests  int           `json:"min_requests"`  // Minimum requests before evaluating ratio
 }
 
 // CircuitBreaker implements the circuit breaker pattern
@@ -53,7 +53,7 @@ func NewCircuitBreaker(config CircuitBreakerConfig) *CircuitBreaker {
 	if config.MinRequests == 0 {
 		config.MinRequests = 10
 	}
-	
+
 	return &CircuitBreaker{
 		config:        config,
 		state:         CircuitBreakerClosed,
@@ -65,7 +65,7 @@ func NewCircuitBreaker(config CircuitBreakerConfig) *CircuitBreaker {
 func (cb *CircuitBreaker) CanExecute() bool {
 	cb.mu.RLock()
 	defer cb.mu.RUnlock()
-	
+
 	switch cb.state {
 	case CircuitBreakerClosed:
 		return true
@@ -94,10 +94,10 @@ func (cb *CircuitBreaker) CanExecute() bool {
 func (cb *CircuitBreaker) RecordSuccess() {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
-	
+
 	cb.requests++
 	cb.successCount++
-	
+
 	switch cb.state {
 	case CircuitBreakerHalfOpen:
 		// After successful execution in half-open, reset to closed
@@ -113,11 +113,11 @@ func (cb *CircuitBreaker) RecordSuccess() {
 func (cb *CircuitBreaker) RecordFailure() {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
-	
+
 	cb.requests++
 	cb.failures++
 	cb.lastFailTime = time.Now()
-	
+
 	switch cb.state {
 	case CircuitBreakerClosed:
 		if cb.shouldOpen() {
@@ -135,7 +135,7 @@ func (cb *CircuitBreaker) shouldOpen() bool {
 	if cb.failures >= cb.config.MaxFailures {
 		return true
 	}
-	
+
 	// Check failure ratio if we have enough requests
 	if cb.requests >= cb.config.MinRequests {
 		failureRatio := float64(cb.failures) / float64(cb.requests)
@@ -143,7 +143,7 @@ func (cb *CircuitBreaker) shouldOpen() bool {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -153,7 +153,7 @@ func (cb *CircuitBreaker) setState(newState CircuitBreakerState) {
 		oldState := cb.state
 		cb.state = newState
 		cb.lastStateTime = time.Now()
-		
+
 		// Call state change callback if set
 		if cb.onStateChange != nil {
 			go cb.onStateChange(oldState, newState)
@@ -179,12 +179,12 @@ func (cb *CircuitBreaker) GetState() CircuitBreakerState {
 func (cb *CircuitBreaker) GetStats() CircuitBreakerStats {
 	cb.mu.RLock()
 	defer cb.mu.RUnlock()
-	
+
 	var failureRatio float64
 	if cb.requests > 0 {
 		failureRatio = float64(cb.failures) / float64(cb.requests)
 	}
-	
+
 	return CircuitBreakerStats{
 		State:         cb.state,
 		Failures:      cb.failures,
@@ -208,7 +208,7 @@ func (cb *CircuitBreaker) SetOnStateChange(callback func(from, to CircuitBreaker
 func (cb *CircuitBreaker) Reset() {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
-	
+
 	cb.setState(CircuitBreakerClosed)
 	cb.resetCounters()
 }
@@ -217,7 +217,7 @@ func (cb *CircuitBreaker) Reset() {
 func (cb *CircuitBreaker) ForceOpen() {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
-	
+
 	cb.setState(CircuitBreakerOpen)
 }
 

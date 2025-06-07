@@ -12,13 +12,13 @@ import (
 
 // JSONFormatter formats log entries as JSON
 type JSONFormatter struct {
-	PrettyPrint    bool   `json:"pretty_print"`
-	TimestampKey   string `json:"timestamp_key"`
-	LevelKey       string `json:"level_key"`
-	MessageKey     string `json:"message_key"`
-	CallerKey      string `json:"caller_key"`
-	StackKey       string `json:"stack_key"`
-	ErrorKey       string `json:"error_key"`
+	PrettyPrint     bool   `json:"pretty_print"`
+	TimestampKey    string `json:"timestamp_key"`
+	LevelKey        string `json:"level_key"`
+	MessageKey      string `json:"message_key"`
+	CallerKey       string `json:"caller_key"`
+	StackKey        string `json:"stack_key"`
+	ErrorKey        string `json:"error_key"`
 	TimestampFormat string `json:"timestamp_format"`
 }
 
@@ -39,12 +39,12 @@ func NewJSONFormatter(prettyPrint bool) *JSONFormatter {
 // Format formats a log entry as JSON
 func (f *JSONFormatter) Format(entry *LogEntry) ([]byte, error) {
 	data := make(map[string]interface{})
-	
+
 	// Core fields
 	data[f.TimestampKey] = entry.Timestamp.Format(f.TimestampFormat)
 	data[f.LevelKey] = entry.Level.String()
 	data[f.MessageKey] = entry.Message
-	
+
 	// Optional fields
 	if entry.Logger != "" {
 		data["logger"] = entry.Logger
@@ -76,32 +76,32 @@ func (f *JSONFormatter) Format(entry *LogEntry) ([]byte, error) {
 	if len(entry.Tags) > 0 {
 		data["tags"] = entry.Tags
 	}
-	
+
 	// Caller info
 	if entry.Caller != nil {
 		data[f.CallerKey] = fmt.Sprintf("%s:%d", entry.Caller.File, entry.Caller.Line)
 		data["function"] = entry.Caller.Function
 	}
-	
+
 	// Stack trace
 	if entry.Stack != "" {
 		data[f.StackKey] = entry.Stack
 	}
-	
+
 	// Additional fields
 	for k, v := range entry.Fields {
 		data[k] = v
 	}
-	
+
 	// Metadata
 	for k, v := range entry.Metadata {
 		data[k] = v
 	}
-	
+
 	if f.PrettyPrint {
 		return json.MarshalIndent(data, "", "  ")
 	}
-	
+
 	return json.Marshal(data)
 }
 
@@ -112,12 +112,12 @@ func (f *JSONFormatter) Type() string {
 
 // TextFormatter formats log entries as human-readable text
 type TextFormatter struct {
-	TimestampFormat string `json:"timestamp_format"`
-	ColorOutput     bool   `json:"color_output"`
-	FullTimestamp   bool   `json:"full_timestamp"`
-	PadLevelText    bool   `json:"pad_level_text"`
-	QuoteEmptyFields bool  `json:"quote_empty_fields"`
-	SortFields      bool   `json:"sort_fields"`
+	TimestampFormat  string `json:"timestamp_format"`
+	ColorOutput      bool   `json:"color_output"`
+	FullTimestamp    bool   `json:"full_timestamp"`
+	PadLevelText     bool   `json:"pad_level_text"`
+	QuoteEmptyFields bool   `json:"quote_empty_fields"`
+	SortFields       bool   `json:"sort_fields"`
 }
 
 // NewTextFormatter creates a new text formatter
@@ -148,7 +148,7 @@ func (f *TextFormatter) getLevelColor(level LogLevel) string {
 	if !f.ColorOutput {
 		return ""
 	}
-	
+
 	switch level {
 	case LogLevelTrace:
 		return ColorGray
@@ -168,30 +168,30 @@ func (f *TextFormatter) getLevelColor(level LogLevel) string {
 // Format formats a log entry as text
 func (f *TextFormatter) Format(entry *LogEntry) ([]byte, error) {
 	var buf bytes.Buffer
-	
+
 	// Timestamp
 	if f.FullTimestamp {
 		buf.WriteString(entry.Timestamp.Format(f.TimestampFormat))
 		buf.WriteByte(' ')
 	}
-	
+
 	// Level with color
 	levelColor := f.getLevelColor(entry.Level)
 	if levelColor != "" {
 		buf.WriteString(levelColor)
 	}
-	
+
 	levelText := entry.Level.String()
 	if f.PadLevelText {
 		levelText = fmt.Sprintf("%-5s", levelText)
 	}
 	buf.WriteString(levelText)
-	
+
 	if levelColor != "" {
 		buf.WriteString(ColorReset)
 	}
 	buf.WriteByte(' ')
-	
+
 	// Component/Logger
 	if entry.Component != "" {
 		buf.WriteByte('[')
@@ -204,16 +204,16 @@ func (f *TextFormatter) Format(entry *LogEntry) ([]byte, error) {
 		buf.WriteByte(']')
 		buf.WriteByte(' ')
 	}
-	
+
 	// Message
 	buf.WriteString(entry.Message)
-	
+
 	// Fields
 	if len(entry.Fields) > 0 {
 		buf.WriteByte(' ')
 		f.writeFields(&buf, entry.Fields)
 	}
-	
+
 	// Context fields
 	var contextFields []string
 	if entry.UserID != "" {
@@ -231,31 +231,31 @@ func (f *TextFormatter) Format(entry *LogEntry) ([]byte, error) {
 	if entry.Duration > 0 {
 		contextFields = append(contextFields, fmt.Sprintf("duration=%s", entry.Duration))
 	}
-	
+
 	if len(contextFields) > 0 {
 		buf.WriteByte(' ')
 		buf.WriteString(strings.Join(contextFields, " "))
 	}
-	
+
 	// Error
 	if entry.Error != "" {
 		buf.WriteString(" error=")
 		buf.WriteString(strconv.Quote(entry.Error))
 	}
-	
+
 	// Caller
 	if entry.Caller != nil {
 		buf.WriteString(fmt.Sprintf(" caller=%s:%d", entry.Caller.File, entry.Caller.Line))
 	}
-	
+
 	// Tags
 	if len(entry.Tags) > 0 {
 		buf.WriteString(" tags=")
 		buf.WriteString(strings.Join(entry.Tags, ","))
 	}
-	
+
 	buf.WriteByte('\n')
-	
+
 	// Stack trace (on separate lines)
 	if entry.Stack != "" {
 		buf.WriteString("Stack trace:\n")
@@ -264,7 +264,7 @@ func (f *TextFormatter) Format(entry *LogEntry) ([]byte, error) {
 			buf.WriteByte('\n')
 		}
 	}
-	
+
 	return buf.Bytes(), nil
 }
 
@@ -273,24 +273,24 @@ func (f *TextFormatter) writeFields(buf *bytes.Buffer, fields map[string]interfa
 	if len(fields) == 0 {
 		return
 	}
-	
+
 	var keys []string
 	for k := range fields {
 		keys = append(keys, k)
 	}
-	
+
 	if f.SortFields {
 		sort.Strings(keys)
 	}
-	
+
 	for i, key := range keys {
 		if i > 0 {
 			buf.WriteByte(' ')
 		}
-		
+
 		buf.WriteString(key)
 		buf.WriteByte('=')
-		
+
 		value := fields[key]
 		f.writeValue(buf, value)
 	}
@@ -349,12 +349,12 @@ func NewLogfmtFormatter() *LogfmtFormatter {
 // Format formats a log entry in logfmt format
 func (f *LogfmtFormatter) Format(entry *LogEntry) ([]byte, error) {
 	var buf bytes.Buffer
-	
+
 	// Core fields
 	f.writeKV(&buf, "timestamp", entry.Timestamp.Format(f.TimestampFormat))
 	f.writeKV(&buf, "level", entry.Level.String())
 	f.writeKV(&buf, "message", entry.Message)
-	
+
 	// Optional core fields
 	if entry.Logger != "" {
 		f.writeKV(&buf, "logger", entry.Logger)
@@ -383,59 +383,59 @@ func (f *LogfmtFormatter) Format(entry *LogEntry) ([]byte, error) {
 	if entry.Error != "" {
 		f.writeKV(&buf, "error", entry.Error)
 	}
-	
+
 	// Caller
 	if entry.Caller != nil {
 		f.writeKV(&buf, "caller", fmt.Sprintf("%s:%d", entry.Caller.File, entry.Caller.Line))
 		f.writeKV(&buf, "function", entry.Caller.Function)
 	}
-	
+
 	// Tags
 	if len(entry.Tags) > 0 {
 		f.writeKV(&buf, "tags", strings.Join(entry.Tags, ","))
 	}
-	
+
 	// Additional fields
 	if len(entry.Fields) > 0 {
 		var keys []string
 		for k := range entry.Fields {
 			keys = append(keys, k)
 		}
-		
+
 		if f.SortFields {
 			sort.Strings(keys)
 		}
-		
+
 		for _, key := range keys {
 			f.writeKV(&buf, key, entry.Fields[key])
 		}
 	}
-	
+
 	// Metadata
 	if len(entry.Metadata) > 0 {
 		var keys []string
 		for k := range entry.Metadata {
 			keys = append(keys, k)
 		}
-		
+
 		if f.SortFields {
 			sort.Strings(keys)
 		}
-		
+
 		for _, key := range keys {
 			f.writeKV(&buf, key, entry.Metadata[key])
 		}
 	}
-	
+
 	buf.WriteByte('\n')
-	
+
 	// Stack trace (on separate line)
 	if entry.Stack != "" {
 		buf.WriteString("stack=")
 		buf.WriteString(strconv.Quote(entry.Stack))
 		buf.WriteByte('\n')
 	}
-	
+
 	return buf.Bytes(), nil
 }
 
@@ -444,10 +444,10 @@ func (f *LogfmtFormatter) writeKV(buf *bytes.Buffer, key string, value interface
 	if buf.Len() > 0 {
 		buf.WriteByte(' ')
 	}
-	
+
 	buf.WriteString(key)
 	buf.WriteByte('=')
-	
+
 	switch v := value.(type) {
 	case string:
 		if strings.ContainsAny(v, " \t\n\r=\"") || v == "" {

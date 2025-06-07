@@ -3,7 +3,6 @@ package security
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -32,40 +31,40 @@ type ContentFilterConfig struct {
 
 // ContentFilterRule represents a content filtering rule
 type ContentFilterRule struct {
-	Name        string        `json:"name"`
-	Type        string        `json:"type"`        // "regex", "keyword", "mime_type", "file_extension"
-	Pattern     string        `json:"pattern"`
-	Action      string        `json:"action"`      // "block", "sanitize", "warn", "log"
-	Level       SecurityLevel `json:"level"`
-	Enabled     bool          `json:"enabled"`
-	Description string        `json:"description"`
-	Categories  []string      `json:"categories"`  // "malware", "spam", "adult", "violence", etc.
+	Name        string                 `json:"name"`
+	Type        string                 `json:"type"` // "regex", "keyword", "mime_type", "file_extension"
+	Pattern     string                 `json:"pattern"`
+	Action      string                 `json:"action"` // "block", "sanitize", "warn", "log"
+	Level       SecurityLevel          `json:"level"`
+	Enabled     bool                   `json:"enabled"`
+	Description string                 `json:"description"`
+	Categories  []string               `json:"categories"` // "malware", "spam", "adult", "violence", etc.
 	Options     map[string]interface{} `json:"options"`
 }
 
 // ContentFilterResult holds the result of content filtering
 type ContentFilterResult struct {
-	Allowed     bool                   `json:"allowed"`
-	Action      string                 `json:"action"`
-	Violations  []ContentViolation     `json:"violations"`
-	Sanitized   bool                   `json:"sanitized"`
-	OriginalSize int64                 `json:"original_size"`
-	FilteredSize int64                 `json:"filtered_size"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Allowed      bool                   `json:"allowed"`
+	Action       string                 `json:"action"`
+	Violations   []ContentViolation     `json:"violations"`
+	Sanitized    bool                   `json:"sanitized"`
+	OriginalSize int64                  `json:"original_size"`
+	FilteredSize int64                  `json:"filtered_size"`
+	Metadata     map[string]interface{} `json:"metadata"`
 }
 
 // ContentViolation represents a content filtering violation
 type ContentViolation struct {
-	Rule        string        `json:"rule"`
-	Type        string        `json:"type"`
-	Level       SecurityLevel `json:"level"`
-	Message     string        `json:"message"`
-	Location    string        `json:"location"`    // "header", "body", "url", "parameter"
-	Field       string        `json:"field"`
-	Value       string        `json:"value"`
-	Category    string        `json:"category"`
-	Action      string        `json:"action"`
-	Suggestion  string        `json:"suggestion"`
+	Rule       string        `json:"rule"`
+	Type       string        `json:"type"`
+	Level      SecurityLevel `json:"level"`
+	Message    string        `json:"message"`
+	Location   string        `json:"location"` // "header", "body", "url", "parameter"
+	Field      string        `json:"field"`
+	Value      string        `json:"value"`
+	Category   string        `json:"category"`
+	Action     string        `json:"action"`
+	Suggestion string        `json:"suggestion"`
 }
 
 // NewContentFilter creates a new content filter
@@ -74,13 +73,13 @@ func NewContentFilter(config ContentFilterConfig) *ContentFilter {
 		config: config,
 		rules:  make([]ContentFilterRule, 0),
 	}
-	
+
 	// Add default rules
 	filter.addDefaultRules()
-	
+
 	// Add custom rules from config
 	filter.rules = append(filter.rules, config.Rules...)
-	
+
 	return filter
 }
 
@@ -188,7 +187,7 @@ func (cf *ContentFilter) addDefaultRules() {
 			Categories:  []string{"unicode", "security"},
 		},
 	}
-	
+
 	cf.rules = append(cf.rules, defaultRules...)
 }
 
@@ -197,12 +196,12 @@ func (cf *ContentFilter) ShouldFilter(ctx context.Context, req *http.Request) bo
 	if !cf.config.Enabled {
 		return false
 	}
-	
+
 	// Always filter POST requests with body content
 	if req.Method == "POST" && req.ContentLength > 0 {
 		return true
 	}
-	
+
 	// Filter requests with specific content types
 	contentType := req.Header.Get("Content-Type")
 	if strings.Contains(contentType, "application/json") ||
@@ -210,7 +209,7 @@ func (cf *ContentFilter) ShouldFilter(ctx context.Context, req *http.Request) bo
 		strings.Contains(contentType, "application/x-www-form-urlencoded") {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -219,26 +218,26 @@ func (cf *ContentFilter) FilterRequest(ctx context.Context, req *http.Request) (
 	if !cf.config.Enabled {
 		return req, nil
 	}
-	
+
 	// Check request size
 	if cf.config.MaxRequestSize > 0 && req.ContentLength > cf.config.MaxRequestSize {
 		return nil, fmt.Errorf("request size %d exceeds maximum %d", req.ContentLength, cf.config.MaxRequestSize)
 	}
-	
+
 	// Filter URL and query parameters
 	if result := cf.filterURL(req.URL.String()); !result.Allowed {
 		if cf.config.StrictMode {
 			return nil, fmt.Errorf("URL blocked by content filter")
 		}
 	}
-	
+
 	// Filter headers
 	if result := cf.filterHeaders(req.Header); !result.Allowed {
 		if cf.config.StrictMode {
 			return nil, fmt.Errorf("headers blocked by content filter")
 		}
 	}
-	
+
 	// Filter body content
 	if req.Body != nil {
 		body, err := io.ReadAll(req.Body)
@@ -246,14 +245,14 @@ func (cf *ContentFilter) FilterRequest(ctx context.Context, req *http.Request) (
 			return nil, fmt.Errorf("failed to read request body: %w", err)
 		}
 		req.Body.Close()
-		
+
 		result := cf.filterContent(string(body), "request_body")
 		if !result.Allowed {
 			if cf.config.StrictMode {
 				return nil, fmt.Errorf("request body blocked by content filter")
 			}
 		}
-		
+
 		// Replace body with filtered content if sanitized
 		if result.Sanitized {
 			filteredBody := cf.applySanitization(string(body), result.Violations)
@@ -263,7 +262,7 @@ func (cf *ContentFilter) FilterRequest(ctx context.Context, req *http.Request) (
 			req.Body = io.NopCloser(bytes.NewReader(body))
 		}
 	}
-	
+
 	return req, nil
 }
 
@@ -279,14 +278,14 @@ func (cf *ContentFilter) filterHeaders(headers http.Header) *ContentFilterResult
 		Violations: make([]ContentViolation, 0),
 		Metadata:   make(map[string]interface{}),
 	}
-	
+
 	for name, values := range headers {
 		for _, value := range values {
 			headerResult := cf.filterContent(value, "header")
 			if !headerResult.Allowed {
 				result.Allowed = false
 			}
-			
+
 			// Add header-specific context to violations
 			for _, violation := range headerResult.Violations {
 				violation.Location = "header"
@@ -295,7 +294,7 @@ func (cf *ContentFilter) filterHeaders(headers http.Header) *ContentFilterResult
 			}
 		}
 	}
-	
+
 	return result
 }
 
@@ -303,22 +302,22 @@ func (cf *ContentFilter) filterHeaders(headers http.Header) *ContentFilterResult
 func (cf *ContentFilter) filterContent(content, location string) *ContentFilterResult {
 	cf.mu.RLock()
 	defer cf.mu.RUnlock()
-	
+
 	result := &ContentFilterResult{
 		Allowed:      true,
 		Violations:   make([]ContentViolation, 0),
 		OriginalSize: int64(len(content)),
 		Metadata:     make(map[string]interface{}),
 	}
-	
+
 	for _, rule := range cf.rules {
 		if !rule.Enabled {
 			continue
 		}
-		
+
 		violations := cf.applyRule(rule, content, location)
 		result.Violations = append(result.Violations, violations...)
-		
+
 		// Determine action based on violations
 		for _, violation := range violations {
 			switch violation.Action {
@@ -341,14 +340,14 @@ func (cf *ContentFilter) filterContent(content, location string) *ContentFilterR
 			}
 		}
 	}
-	
+
 	return result
 }
 
 // applyRule applies a single filtering rule to content
 func (cf *ContentFilter) applyRule(rule ContentFilterRule, content, location string) []ContentViolation {
 	var violations []ContentViolation
-	
+
 	switch rule.Type {
 	case "regex":
 		if matches := cf.findRegexMatches(rule.Pattern, content); len(matches) > 0 {
@@ -387,7 +386,7 @@ func (cf *ContentFilter) applyRule(rule ContentFilterRule, content, location str
 	case "mime_type", "file_extension":
 		// These are handled in specific contexts
 	}
-	
+
 	return violations
 }
 
@@ -397,7 +396,7 @@ func (cf *ContentFilter) findRegexMatches(pattern, content string) []string {
 	if err != nil {
 		return nil
 	}
-	
+
 	matches := re.FindAllString(content, -1)
 	return matches
 }
@@ -411,7 +410,7 @@ func (cf *ContentFilter) findKeywordMatches(pattern, content string) []string {
 // applySanitization applies sanitization based on violations
 func (cf *ContentFilter) applySanitization(content string, violations []ContentViolation) string {
 	sanitized := content
-	
+
 	for _, violation := range violations {
 		if violation.Action == "sanitize" {
 			switch violation.Type {
@@ -425,27 +424,27 @@ func (cf *ContentFilter) applySanitization(content string, violations []ContentV
 			}
 		}
 	}
-	
+
 	return sanitized
 }
 
 // getSuggestion returns a suggestion for fixing the violation
 func (cf *ContentFilter) getSuggestion(rule ContentFilterRule) string {
 	suggestions := map[string]string{
-		"malware_signatures":       "Remove or quarantine potentially malicious content",
+		"malware_signatures":         "Remove or quarantine potentially malicious content",
 		"suspicious_file_extensions": "Use safe file formats and validate file contents",
-		"spam_keywords":           "Remove promotional language and spam indicators",
-		"profanity_filter":        "Use appropriate language and remove offensive content",
-		"personal_info_ssn":       "Remove or mask Social Security Numbers",
-		"personal_info_credit_card": "Remove or mask credit card numbers",
-		"suspicious_urls":         "Use trusted and verified URLs only",
-		"unicode_security_issues": "Remove Unicode directional override characters",
+		"spam_keywords":              "Remove promotional language and spam indicators",
+		"profanity_filter":           "Use appropriate language and remove offensive content",
+		"personal_info_ssn":          "Remove or mask Social Security Numbers",
+		"personal_info_credit_card":  "Remove or mask credit card numbers",
+		"suspicious_urls":            "Use trusted and verified URLs only",
+		"unicode_security_issues":    "Remove Unicode directional override characters",
 	}
-	
+
 	if suggestion, exists := suggestions[rule.Name]; exists {
 		return suggestion
 	}
-	
+
 	return "Review and modify content according to security policies"
 }
 
@@ -453,7 +452,7 @@ func (cf *ContentFilter) getSuggestion(rule ContentFilterRule) string {
 func (cf *ContentFilter) AddRule(rule ContentFilterRule) {
 	cf.mu.Lock()
 	defer cf.mu.Unlock()
-	
+
 	cf.rules = append(cf.rules, rule)
 }
 
@@ -461,7 +460,7 @@ func (cf *ContentFilter) AddRule(rule ContentFilterRule) {
 func (cf *ContentFilter) RemoveRule(name string) {
 	cf.mu.Lock()
 	defer cf.mu.Unlock()
-	
+
 	for i, rule := range cf.rules {
 		if rule.Name == name {
 			cf.rules = append(cf.rules[:i], cf.rules[i+1:]...)
@@ -474,7 +473,7 @@ func (cf *ContentFilter) RemoveRule(name string) {
 func (cf *ContentFilter) GetRules() []ContentFilterRule {
 	cf.mu.RLock()
 	defer cf.mu.RUnlock()
-	
+
 	rules := make([]ContentFilterRule, len(cf.rules))
 	copy(rules, cf.rules)
 	return rules
@@ -484,14 +483,14 @@ func (cf *ContentFilter) GetRules() []ContentFilterRule {
 func (cf *ContentFilter) UpdateRule(name string, rule ContentFilterRule) bool {
 	cf.mu.Lock()
 	defer cf.mu.Unlock()
-	
+
 	for i, existingRule := range cf.rules {
 		if existingRule.Name == name {
 			cf.rules[i] = rule
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -499,14 +498,14 @@ func (cf *ContentFilter) UpdateRule(name string, rule ContentFilterRule) bool {
 func (cf *ContentFilter) EnableRule(name string) bool {
 	cf.mu.Lock()
 	defer cf.mu.Unlock()
-	
+
 	for i, rule := range cf.rules {
 		if rule.Name == name {
 			cf.rules[i].Enabled = true
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -514,14 +513,14 @@ func (cf *ContentFilter) EnableRule(name string) bool {
 func (cf *ContentFilter) DisableRule(name string) bool {
 	cf.mu.Lock()
 	defer cf.mu.Unlock()
-	
+
 	for i, rule := range cf.rules {
 		if rule.Name == name {
 			cf.rules[i].Enabled = false
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -529,27 +528,27 @@ func (cf *ContentFilter) DisableRule(name string) bool {
 func (cf *ContentFilter) GetStats() map[string]interface{} {
 	cf.mu.RLock()
 	defer cf.mu.RUnlock()
-	
+
 	stats := map[string]interface{}{
 		"total_rules":   len(cf.rules),
 		"enabled_rules": 0,
 		"rule_types":    make(map[string]int),
 		"categories":    make(map[string]int),
 	}
-	
+
 	for _, rule := range cf.rules {
 		if rule.Enabled {
 			stats["enabled_rules"] = stats["enabled_rules"].(int) + 1
 		}
-		
+
 		ruleTypes := stats["rule_types"].(map[string]int)
 		ruleTypes[rule.Type]++
-		
+
 		categories := stats["categories"].(map[string]int)
 		for _, category := range rule.Categories {
 			categories[category]++
 		}
 	}
-	
+
 	return stats
 }

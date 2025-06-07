@@ -22,30 +22,30 @@ type RedisCache struct {
 
 // RedisConfig holds Redis-specific configuration
 type RedisConfig struct {
-	Addrs        []string `json:"addrs"`         // Redis addresses
-	Username     string   `json:"username"`      // Redis username
-	Password     string   `json:"password"`      // Redis password
-	DB           int      `json:"db"`            // Database number
-	PoolSize     int      `json:"pool_size"`     // Connection pool size
+	Addrs        []string `json:"addrs"`          // Redis addresses
+	Username     string   `json:"username"`       // Redis username
+	Password     string   `json:"password"`       // Redis password
+	DB           int      `json:"db"`             // Database number
+	PoolSize     int      `json:"pool_size"`      // Connection pool size
 	MinIdleConns int      `json:"min_idle_conns"` // Minimum idle connections
-	MaxRetries   int      `json:"max_retries"`   // Maximum retries
-	DialTimeout  string   `json:"dial_timeout"`  // Connection timeout
-	ReadTimeout  string   `json:"read_timeout"`  // Read timeout
-	WriteTimeout string   `json:"write_timeout"` // Write timeout
-	Cluster      bool     `json:"cluster"`       // Enable cluster mode
-	Sentinel     bool     `json:"sentinel"`      // Enable sentinel mode
-	MasterName   string   `json:"master_name"`   // Sentinel master name
-	KeyPrefix    string   `json:"key_prefix"`    // Key prefix for namespacing
+	MaxRetries   int      `json:"max_retries"`    // Maximum retries
+	DialTimeout  string   `json:"dial_timeout"`   // Connection timeout
+	ReadTimeout  string   `json:"read_timeout"`   // Read timeout
+	WriteTimeout string   `json:"write_timeout"`  // Write timeout
+	Cluster      bool     `json:"cluster"`        // Enable cluster mode
+	Sentinel     bool     `json:"sentinel"`       // Enable sentinel mode
+	MasterName   string   `json:"master_name"`    // Sentinel master name
+	KeyPrefix    string   `json:"key_prefix"`     // Key prefix for namespacing
 }
 
 // NewRedisCache creates a new Redis cache
 func NewRedisCache(name string, config CacheConfig) (*RedisCache, error) {
 	// Parse Redis configuration
 	redisConfig := parseRedisConfig(config.Config)
-	
+
 	// Create Redis client
 	var client redis.UniversalClient
-	
+
 	if redisConfig.Cluster {
 		client = redis.NewClusterClient(&redis.ClusterOptions{
 			Addrs:        redisConfig.Addrs,
@@ -77,7 +77,7 @@ func NewRedisCache(name string, config CacheConfig) (*RedisCache, error) {
 		if len(redisConfig.Addrs) > 0 {
 			addr = redisConfig.Addrs[0]
 		}
-		
+
 		client = redis.NewClient(&redis.Options{
 			Addr:         addr,
 			Username:     redisConfig.Username,
@@ -91,15 +91,15 @@ func NewRedisCache(name string, config CacheConfig) (*RedisCache, error) {
 			WriteTimeout: parseDuration(redisConfig.WriteTimeout, 3*time.Second),
 		})
 	}
-	
+
 	// Test connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
 	}
-	
+
 	return &RedisCache{
 		name:   name,
 		config: config,
@@ -124,7 +124,7 @@ func parseRedisConfig(config map[string]interface{}) RedisConfig {
 		ReadTimeout:  "3s",
 		WriteTimeout: "3s",
 	}
-	
+
 	if addrs, ok := config["addrs"].([]interface{}); ok {
 		redisConfig.Addrs = make([]string, len(addrs))
 		for i, addr := range addrs {
@@ -133,7 +133,7 @@ func parseRedisConfig(config map[string]interface{}) RedisConfig {
 	} else if addr, ok := config["addr"].(string); ok {
 		redisConfig.Addrs = []string{addr}
 	}
-	
+
 	if username, ok := config["username"].(string); ok {
 		redisConfig.Username = username
 	}
@@ -173,7 +173,7 @@ func parseRedisConfig(config map[string]interface{}) RedisConfig {
 	if keyPrefix, ok := config["key_prefix"].(string); ok {
 		redisConfig.KeyPrefix = keyPrefix
 	}
-	
+
 	return redisConfig
 }
 
@@ -196,7 +196,7 @@ func (rc *RedisCache) makeKey(key string) string {
 // Get retrieves an item from Redis
 func (rc *RedisCache) Get(ctx context.Context, key string) (*CacheItem, error) {
 	redisKey := rc.makeKey(key)
-	
+
 	// Get JSON data from Redis
 	data, err := rc.client.Get(ctx, redisKey).Result()
 	if err != nil {
@@ -208,7 +208,7 @@ func (rc *RedisCache) Get(ctx context.Context, key string) (*CacheItem, error) {
 		rc.stats.LastError = err.Error()
 		return nil, err
 	}
-	
+
 	// Deserialize cache item
 	var item CacheItem
 	if err := json.Unmarshal([]byte(data), &item); err != nil {
@@ -216,25 +216,25 @@ func (rc *RedisCache) Get(ctx context.Context, key string) (*CacheItem, error) {
 		rc.stats.LastError = err.Error()
 		return nil, ErrDeserialize
 	}
-	
+
 	// Check if expired (Redis should handle this, but double-check)
 	if time.Now().After(item.ExpiresAt) {
 		rc.stats.Misses++
 		go rc.client.Del(context.Background(), redisKey) // Clean up asynchronously
 		return nil, ErrCacheMiss
 	}
-	
+
 	// Update access info
 	item.AccessCount++
 	item.LastAccess = time.Now()
-	
+
 	// Update item in Redis (fire and forget)
 	go func() {
 		if itemData, err := json.Marshal(item); err == nil {
 			rc.client.Set(context.Background(), redisKey, itemData, time.Until(item.ExpiresAt))
 		}
 	}()
-	
+
 	rc.stats.Hits++
 	rc.stats.LastAccess = time.Now()
 	return &item, nil
@@ -245,10 +245,10 @@ func (rc *RedisCache) Set(ctx context.Context, key string, value interface{}, tt
 	if ttl == 0 {
 		ttl = rc.config.DefaultTTL
 	}
-	
+
 	redisKey := rc.makeKey(key)
 	now := time.Now()
-	
+
 	item := CacheItem{
 		Key:         key,
 		Value:       value,
@@ -258,7 +258,7 @@ func (rc *RedisCache) Set(ctx context.Context, key string, value interface{}, tt
 		LastAccess:  now,
 		TTL:         ttl,
 	}
-	
+
 	// Serialize cache item
 	data, err := json.Marshal(item)
 	if err != nil {
@@ -266,7 +266,7 @@ func (rc *RedisCache) Set(ctx context.Context, key string, value interface{}, tt
 		rc.stats.LastError = err.Error()
 		return ErrSerialize
 	}
-	
+
 	// Store in Redis with TTL
 	err = rc.client.Set(ctx, redisKey, data, ttl).Err()
 	if err != nil {
@@ -274,7 +274,7 @@ func (rc *RedisCache) Set(ctx context.Context, key string, value interface{}, tt
 		rc.stats.LastError = err.Error()
 		return err
 	}
-	
+
 	rc.stats.Sets++
 	return nil
 }
@@ -282,14 +282,14 @@ func (rc *RedisCache) Set(ctx context.Context, key string, value interface{}, tt
 // Delete removes an item from Redis
 func (rc *RedisCache) Delete(ctx context.Context, key string) error {
 	redisKey := rc.makeKey(key)
-	
+
 	err := rc.client.Del(ctx, redisKey).Err()
 	if err != nil {
 		rc.stats.ErrorCount++
 		rc.stats.LastError = err.Error()
 		return err
 	}
-	
+
 	rc.stats.Deletes++
 	return nil
 }
@@ -297,14 +297,14 @@ func (rc *RedisCache) Delete(ctx context.Context, key string) error {
 // Exists checks if a key exists in Redis
 func (rc *RedisCache) Exists(ctx context.Context, key string) bool {
 	redisKey := rc.makeKey(key)
-	
+
 	count, err := rc.client.Exists(ctx, redisKey).Result()
 	if err != nil {
 		rc.stats.ErrorCount++
 		rc.stats.LastError = err.Error()
 		return false
 	}
-	
+
 	return count > 0
 }
 
@@ -313,7 +313,7 @@ func (rc *RedisCache) GetMulti(ctx context.Context, keys []string) (map[string]*
 	if len(keys) == 0 {
 		return make(map[string]*CacheItem), nil
 	}
-	
+
 	// Convert keys to Redis keys
 	redisKeys := make([]string, len(keys))
 	keyMap := make(map[string]string) // redisKey -> originalKey
@@ -322,7 +322,7 @@ func (rc *RedisCache) GetMulti(ctx context.Context, keys []string) (map[string]*
 		redisKeys[i] = redisKey
 		keyMap[redisKey] = key
 	}
-	
+
 	// Get all values
 	values, err := rc.client.MGet(ctx, redisKeys...).Result()
 	if err != nil {
@@ -330,34 +330,34 @@ func (rc *RedisCache) GetMulti(ctx context.Context, keys []string) (map[string]*
 		rc.stats.LastError = err.Error()
 		return nil, err
 	}
-	
+
 	result := make(map[string]*CacheItem)
-	
+
 	for i, value := range values {
 		if value == nil {
 			rc.stats.Misses++
 			continue
 		}
-		
+
 		// Deserialize cache item
 		var item CacheItem
 		if err := json.Unmarshal([]byte(value.(string)), &item); err != nil {
 			rc.stats.Misses++
 			continue
 		}
-		
+
 		// Check if expired
 		if time.Now().After(item.ExpiresAt) {
 			rc.stats.Misses++
 			go rc.client.Del(context.Background(), redisKeys[i])
 			continue
 		}
-		
+
 		originalKey := keyMap[redisKeys[i]]
 		result[originalKey] = &item
 		rc.stats.Hits++
 	}
-	
+
 	rc.stats.LastAccess = time.Now()
 	return result, nil
 }
@@ -367,12 +367,12 @@ func (rc *RedisCache) SetMulti(ctx context.Context, items map[string]*CacheItem)
 	if len(items) == 0 {
 		return nil
 	}
-	
+
 	pipe := rc.client.Pipeline()
-	
+
 	for key, item := range items {
 		redisKey := rc.makeKey(key)
-		
+
 		// Serialize cache item
 		data, err := json.Marshal(item)
 		if err != nil {
@@ -380,22 +380,22 @@ func (rc *RedisCache) SetMulti(ctx context.Context, items map[string]*CacheItem)
 			rc.stats.LastError = err.Error()
 			continue
 		}
-		
+
 		ttl := time.Until(item.ExpiresAt)
 		if ttl <= 0 {
 			ttl = rc.config.DefaultTTL
 		}
-		
+
 		pipe.Set(ctx, redisKey, data, ttl)
 	}
-	
+
 	_, err := pipe.Exec(ctx)
 	if err != nil {
 		rc.stats.ErrorCount++
 		rc.stats.LastError = err.Error()
 		return err
 	}
-	
+
 	rc.stats.Sets += int64(len(items))
 	return nil
 }
@@ -405,19 +405,19 @@ func (rc *RedisCache) DeleteMulti(ctx context.Context, keys []string) error {
 	if len(keys) == 0 {
 		return nil
 	}
-	
+
 	redisKeys := make([]string, len(keys))
 	for i, key := range keys {
 		redisKeys[i] = rc.makeKey(key)
 	}
-	
+
 	deleted, err := rc.client.Del(ctx, redisKeys...).Result()
 	if err != nil {
 		rc.stats.ErrorCount++
 		rc.stats.LastError = err.Error()
 		return err
 	}
-	
+
 	rc.stats.Deletes += deleted
 	return nil
 }
@@ -425,19 +425,19 @@ func (rc *RedisCache) DeleteMulti(ctx context.Context, keys []string) error {
 // Increment increments a numeric value in Redis
 func (rc *RedisCache) Increment(ctx context.Context, key string, delta int64) (int64, error) {
 	redisKey := rc.makeKey(key)
-	
+
 	result, err := rc.client.IncrBy(ctx, redisKey, delta).Result()
 	if err != nil {
 		rc.stats.ErrorCount++
 		rc.stats.LastError = err.Error()
 		return 0, err
 	}
-	
+
 	// Set TTL if key is new
 	if result == delta {
 		rc.client.Expire(ctx, redisKey, rc.config.DefaultTTL)
 	}
-	
+
 	return result, nil
 }
 
@@ -449,18 +449,18 @@ func (rc *RedisCache) Decrement(ctx context.Context, key string, delta int64) (i
 // Touch updates the TTL of an item in Redis
 func (rc *RedisCache) Touch(ctx context.Context, key string, ttl time.Duration) error {
 	redisKey := rc.makeKey(key)
-	
+
 	success, err := rc.client.Expire(ctx, redisKey, ttl).Result()
 	if err != nil {
 		rc.stats.ErrorCount++
 		rc.stats.LastError = err.Error()
 		return err
 	}
-	
+
 	if !success {
 		return ErrKeyNotFound
 	}
-	
+
 	return nil
 }
 
@@ -474,7 +474,7 @@ func (rc *RedisCache) Clear(ctx context.Context) error {
 		rc.stats.LastError = err.Error()
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -492,7 +492,7 @@ func (rc *RedisCache) Stats(ctx context.Context) (*CacheStats, error) {
 		rc.stats.LastError = err.Error()
 		return rc.stats, err
 	}
-	
+
 	// Parse INFO output
 	lines := strings.Split(info, "\r\n")
 	for _, line := range lines {
@@ -517,15 +517,15 @@ func (rc *RedisCache) Stats(ctx context.Context) (*CacheStats, error) {
 			}
 		}
 	}
-	
+
 	// Calculate derived stats
 	stats := *rc.stats // Copy stats
 	stats.Uptime = time.Since(rc.startTime)
-	
+
 	if stats.Hits+stats.Misses > 0 {
 		stats.HitRatio = float64(stats.Hits) / float64(stats.Hits+stats.Misses)
 	}
-	
+
 	return &stats, nil
 }
 
