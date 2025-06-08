@@ -256,29 +256,37 @@ func (cs *ConfiguredServer) Close() error {
 
 	// Close loggers
 	for _, logger := range cs.loggers {
-		if err := logger.Close(); err != nil {
-			errors = append(errors, err)
+		if logger != nil {
+			if err := logger.Close(); err != nil {
+				errors = append(errors, err)
+			}
 		}
 	}
 
 	// Close caches
 	for _, cache := range cs.caches {
-		if err := cache.Close(); err != nil {
-			errors = append(errors, err)
+		if cache != nil {
+			if err := cache.Close(); err != nil {
+				errors = append(errors, err)
+			}
 		}
 	}
 
 	// Close metrics providers
 	for _, metrics := range cs.metrics {
-		if err := metrics.Close(); err != nil {
-			errors = append(errors, err)
+		if metrics != nil {
+			if err := metrics.Close(); err != nil {
+				errors = append(errors, err)
+			}
 		}
 	}
 
 	// Shutdown telemetry providers
 	for _, telemetry := range cs.telemetries {
-		if err := telemetry.Shutdown(context.Background()); err != nil {
-			errors = append(errors, err)
+		if telemetry != nil {
+			if err := telemetry.Shutdown(context.Background()); err != nil {
+				errors = append(errors, err)
+			}
 		}
 	}
 

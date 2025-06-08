@@ -49,8 +49,11 @@ func (mc *MemoryCache) Set(key string, value interface{}, ttl time.Duration) err
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
 
-	// Simple size check (not exact)
-	if mc.size >= int64(mc.maxSize) {
+	// Check if key already exists
+	_, exists := mc.data.Load(key)
+	
+	// Simple size check (not exact) - only for new keys
+	if !exists && mc.maxSize > 0 && mc.size >= int64(mc.maxSize) {
 		return fmt.Errorf("cache full")
 	}
 
@@ -58,18 +61,28 @@ func (mc *MemoryCache) Set(key string, value interface{}, ttl time.Duration) err
 	if ttl > 0 {
 		mc.ttlMap.Store(key, time.Now().Add(ttl))
 	}
-	mc.size++
+	
+	// Only increment size for new keys
+	if !exists {
+		mc.size++
+	}
 
 	return nil
 }
 
 func (mc *MemoryCache) Delete(key string) error {
+	// Check if key exists before deletion
+	_, exists := mc.data.Load(key)
+	
 	mc.data.Delete(key)
 	mc.ttlMap.Delete(key)
 
-	mc.mu.Lock()
-	mc.size--
-	mc.mu.Unlock()
+	// Only decrement size if key existed
+	if exists {
+		mc.mu.Lock()
+		mc.size--
+		mc.mu.Unlock()
+	}
 
 	return nil
 }

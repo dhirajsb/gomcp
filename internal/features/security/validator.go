@@ -22,6 +22,9 @@ func (sv *StrictValidator) Name() string {
 }
 
 func (sv *StrictValidator) ValidateRequest(ctx context.Context, req *types.Request) error {
+	if req == nil {
+		return fmt.Errorf("request cannot be nil")
+	}
 	if req.Method == "" {
 		return fmt.Errorf("method required")
 	}
@@ -31,6 +34,9 @@ func (sv *StrictValidator) ValidateRequest(ctx context.Context, req *types.Reque
 }
 
 func (sv *StrictValidator) SanitizeParams(params map[string]interface{}) map[string]interface{} {
+	if params == nil {
+		return make(map[string]interface{})
+	}
 	// In strict mode, don't auto-sanitize, just return as-is
 	return params
 }

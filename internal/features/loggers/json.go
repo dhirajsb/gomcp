@@ -1,6 +1,7 @@
 package loggers
 
 import (
+	"encoding/json"
 	"log"
 	"time"
 
@@ -42,9 +43,14 @@ func (jl *JSONLogger) Log(level logging.LogLevel, message string, fields map[str
 		logEntry[k] = v
 	}
 
-	// Simple JSON-like format for demo (in real implementation, use proper JSON marshaling)
-	log.Printf(`{"timestamp":"%s","level":"%s","logger":"%s","message":"%s"}`,
-		logEntry["timestamp"], logEntry["level"], logEntry["logger"], logEntry["message"])
+	// Use proper JSON marshaling
+	if jsonBytes, err := json.Marshal(logEntry); err == nil {
+		log.Printf("%s", string(jsonBytes))
+	} else {
+		// Fallback to simple format
+		log.Printf(`{"timestamp":"%s","level":"%s","logger":"%s","message":"%s"}`,
+			logEntry["timestamp"], logEntry["level"], logEntry["logger"], logEntry["message"])
+	}
 }
 
 func (jl *JSONLogger) Close() error {

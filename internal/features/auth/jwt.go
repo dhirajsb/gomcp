@@ -48,6 +48,9 @@ func (ja *JWTAuthenticator) Authenticate(ctx context.Context, token string) (*au
 }
 
 func (ja *JWTAuthenticator) Validate(ctx context.Context, user *auth.UserIdentity) error {
+	if user == nil {
+		return fmt.Errorf("user cannot be nil")
+	}
 	if user.ID == "" {
 		return fmt.Errorf("user ID required")
 	}
