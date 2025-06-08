@@ -9,6 +9,8 @@
 - [ ] Implement multiple transport support (HTTP, WebSocket, Unix sockets, TCP)
 - [ ] Add auto-generated API documentation with OpenAPI/Swagger integration
 - [ ] Integrate Prometheus metrics with /metrics endpoint for comprehensive monitoring
+- [x] Support using builder pattern for configuring the server
+- [ ] Make all server features like logging, metrics, etc. optional
 
 ## Medium Priority
 

@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/dhirajsb/gomcp"
+	"github.com/dhirajsb/gomcp/pkg/gomcp"
 )
 
 func main() {

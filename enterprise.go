@@ -4,13 +4,13 @@ import (
 	"context"
 	"log"
 
-	"github.com/dhirajsb/gomcp/auth"
-	"github.com/dhirajsb/gomcp/cache"
-	"github.com/dhirajsb/gomcp/config"
-	"github.com/dhirajsb/gomcp/logging"
-	"github.com/dhirajsb/gomcp/security"
-	"github.com/dhirajsb/gomcp/server"
-	"github.com/dhirajsb/gomcp/telemetry"
+	"github.com/dhirajsb/gomcp/internal/auth"
+	"github.com/dhirajsb/gomcp/internal/cache"
+	"github.com/dhirajsb/gomcp/internal/config"
+	"github.com/dhirajsb/gomcp/internal/logging"
+	"github.com/dhirajsb/gomcp/internal/security"
+	"github.com/dhirajsb/gomcp/internal/server"
+	"github.com/dhirajsb/gomcp/internal/telemetry"
 	"go.opentelemetry.io/otel/trace"
 )
 

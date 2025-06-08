@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dhirajsb/gomcp"
+	"github.com/dhirajsb/gomcp/pkg/gomcp"
 )
 
 func main() {
