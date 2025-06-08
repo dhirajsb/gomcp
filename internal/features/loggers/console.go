@@ -31,7 +31,7 @@ func (cl *ConsoleLogger) Log(level logging.LogLevel, message string, fields map[
 	if level < cl.level {
 		return
 	}
-	
+
 	fieldsStr := ""
 	if len(fields) > 0 {
 		parts := make([]string, 0, len(fields))
@@ -40,7 +40,7 @@ func (cl *ConsoleLogger) Log(level logging.LogLevel, message string, fields map[
 		}
 		fieldsStr = fmt.Sprintf(" [%s]", strings.Join(parts, " "))
 	}
-	
+
 	log.Printf("[%s] %s: %s%s", strings.ToUpper(level.String()), cl.name, message, fieldsStr)
 }
 

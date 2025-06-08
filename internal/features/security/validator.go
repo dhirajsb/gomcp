@@ -25,7 +25,7 @@ func (sv *StrictValidator) ValidateRequest(ctx context.Context, req *types.Reque
 	if req.Method == "" {
 		return fmt.Errorf("method required")
 	}
-	
+
 	// Add more strict validations as needed
 	return nil
 }

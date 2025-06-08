@@ -14,7 +14,7 @@ import (
 // Builder provides a fluent interface for configuring and building MCP servers
 type Builder struct {
 	config *config.ServerConfig
-	
+
 	// Collections of feature implementations
 	loggers     []features.Logger
 	caches      []features.Cache
@@ -183,6 +183,11 @@ func (cs *ConfiguredServer) initializeFeatures() error {
 	// This would involve extending the base server to accept these features
 
 	return nil
+}
+
+// Name returns the server name
+func (cs *ConfiguredServer) Name() string {
+	return cs.config.Name
 }
 
 // GetLoggers returns all configured loggers

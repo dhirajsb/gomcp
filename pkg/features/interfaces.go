@@ -5,16 +5,29 @@ import (
 	"context"
 	"time"
 
-	"github.com/dhirajsb/gomcp/internal/auth"
-	"github.com/dhirajsb/gomcp/internal/logging"
-	"github.com/dhirajsb/gomcp/internal/types"
 	"go.opentelemetry.io/otel/trace"
 )
+
+// UserIdentity represents an authenticated user (simplified public version)
+type UserIdentity struct {
+	ID       string
+	Username string
+	Email    string
+	Roles    []string
+	Groups   []string
+	Claims   map[string]interface{}
+}
+
+// Request represents an MCP request (simplified public version)
+type Request struct {
+	Method string
+	Params interface{}
+}
 
 // Logger interface for logging implementations
 type Logger interface {
 	Name() string
-	Log(level logging.LogLevel, message string, fields map[string]interface{})
+	Log(level interface{}, message string, fields map[string]interface{})
 	Close() error
 }
 
@@ -31,14 +44,14 @@ type Cache interface {
 // Authenticator interface for authentication implementations
 type Authenticator interface {
 	Name() string
-	Authenticate(ctx context.Context, token string) (*auth.UserIdentity, error)
-	Validate(ctx context.Context, user *auth.UserIdentity) error
+	Authenticate(ctx context.Context, token string) (*UserIdentity, error)
+	Validate(ctx context.Context, user *UserIdentity) error
 }
 
 // SecurityValidator interface for security validation implementations
 type SecurityValidator interface {
 	Name() string
-	ValidateRequest(ctx context.Context, req *types.Request) error
+	ValidateRequest(ctx context.Context, req *Request) error
 	SanitizeParams(params map[string]interface{}) map[string]interface{}
 }
 

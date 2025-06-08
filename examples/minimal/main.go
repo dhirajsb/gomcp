@@ -10,7 +10,7 @@ import (
 // Example demonstrating minimal MCP server usage
 func main() {
 	fmt.Println("=== Minimal Go MCP Server Example ===")
-	
+
 	// Create a minimal server
 	server := gomcp.NewServer()
 
@@ -28,7 +28,7 @@ func main() {
 
 	fmt.Println("✓ Registered tools: add, greet")
 	fmt.Println("Starting MCP server with stdio transport...")
-	
+
 	// Start the server with stdio transport
 	if err := server.Start(gomcp.Stdio()); err != nil {
 		log.Fatalf("Server failed: %v", err)

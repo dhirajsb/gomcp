@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/dhirajsb/gomcp/types"
+	"github.com/dhirajsb/gomcp/internal/types"
 )
 
 func TestNewServer(t *testing.T) {

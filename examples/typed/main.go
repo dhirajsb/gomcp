@@ -8,19 +8,41 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dhirajsb/gomcp"
+	"github.com/dhirajsb/gomcp/pkg/builder"
 )
 
 func main() {
-	// Quick API usage
-	err := gomcp.Quick().
-		Tool("advanced_search", AdvancedSearchFiles).
-		Tool("calculate", Calculate).
-		Resource("system_info", GetSystemInfo).
-		Prompt("documentation", DocumentationPrompt).
-		Run()
+	// Create server with builder API
+	server, err := builder.Development("typed-example", "1.0.0").Build()
+	if err != nil {
+		log.Fatalf("Failed to create server: %v", err)
+	}
+	defer server.Close()
 
-	log.Fatal(err)
+	// Register tools with structured parameters
+	err = server.RegisterTool("advanced_search", AdvancedSearchFiles)
+	if err != nil {
+		log.Fatalf("Failed to register advanced_search tool: %v", err)
+	}
+
+	err = server.RegisterTool("calculate", Calculate)
+	if err != nil {
+		log.Fatalf("Failed to register calculate tool: %v", err)
+	}
+
+	err = server.RegisterResource("system_info", GetSystemInfo)
+	if err != nil {
+		log.Fatalf("Failed to register system_info resource: %v", err)
+	}
+
+	err = server.RegisterPrompt("documentation", DocumentationPrompt)
+	if err != nil {
+		log.Fatalf("Failed to register documentation prompt: %v", err)
+	}
+
+	fmt.Printf("✓ Registered tools with structured parameters and validation\n")
+	fmt.Printf("✓ Server: %s ready with stdio transport\n", server.Name())
+	fmt.Printf("✓ The server would now handle MCP requests with parameter validation\n")
 }
 
 // Structured parameter types with validation

@@ -23,11 +23,11 @@ func NewStdout(name string) *StdoutProvider {
 		log.Printf("Failed to create stdout exporter: %v", err)
 		return &StdoutProvider{name: name}
 	}
-	
+
 	provider := trace.NewTracerProvider(
 		trace.WithBatcher(exporter),
 	)
-	
+
 	return &StdoutProvider{
 		name:     name,
 		provider: provider,

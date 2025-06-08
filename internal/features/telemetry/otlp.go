@@ -24,11 +24,11 @@ func NewOTLP(name, endpoint string) *OTLPProvider {
 		log.Printf("Failed to create OTLP exporter: %v", err)
 		return &OTLPProvider{name: name, endpoint: endpoint}
 	}
-	
+
 	provider := trace.NewTracerProvider(
 		trace.WithBatcher(exporter),
 	)
-	
+
 	return &OTLPProvider{
 		name:     name,
 		provider: provider,

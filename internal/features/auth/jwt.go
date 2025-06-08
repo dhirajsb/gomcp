@@ -32,7 +32,7 @@ func (ja *JWTAuthenticator) Authenticate(ctx context.Context, token string) (*au
 	if token == "" {
 		return nil, fmt.Errorf("no token provided")
 	}
-	
+
 	// Mock validation
 	if strings.HasPrefix(token, "valid-") {
 		return &auth.UserIdentity{
@@ -43,7 +43,7 @@ func (ja *JWTAuthenticator) Authenticate(ctx context.Context, token string) (*au
 			IssuedAt: time.Now(),
 		}, nil
 	}
-	
+
 	return nil, fmt.Errorf("invalid token")
 }
 
