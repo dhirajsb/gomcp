@@ -5,25 +5,25 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/dhirajsb/gomcp/internal/auth"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func TestJWTConfig_Defaults(t *testing.T) {
 	authenticator := NewJWT("test", "secret123")
-	
+
 	if authenticator.config.Name != "test" {
 		t.Errorf("Expected name 'test', got '%s'", authenticator.config.Name)
 	}
-	
+
 	if authenticator.config.Secret != "secret123" {
 		t.Errorf("Expected secret 'secret123', got '%s'", authenticator.config.Secret)
 	}
-	
+
 	if !authenticator.config.RequireExp {
 		t.Error("Expected RequireExp to be true by default")
 	}
-	
+
 	if !authenticator.config.RequireIat {
 		t.Error("Expected RequireIat to be true by default")
 	}
@@ -41,17 +41,17 @@ func TestJWTConfig_WithConfig(t *testing.T) {
 		RequireIat:       true,
 		RequireNbf:       true,
 	}
-	
+
 	authenticator := NewJWTWithConfig(config)
-	
+
 	if authenticator.config.Name != "custom" {
 		t.Errorf("Expected name 'custom', got '%s'", authenticator.config.Name)
 	}
-	
+
 	if len(authenticator.config.AuthorizedRoles) != 2 {
 		t.Errorf("Expected 2 authorized roles, got %d", len(authenticator.config.AuthorizedRoles))
 	}
-	
+
 	if len(authenticator.config.AuthorizedGroups) != 2 {
 		t.Errorf("Expected 2 authorized groups, got %d", len(authenticator.config.AuthorizedGroups))
 	}
@@ -61,7 +61,7 @@ func TestJWTAuthenticator_ValidToken(t *testing.T) {
 	secret := "test-secret-key"
 	authenticator := NewJWT("test", secret)
 	ctx := context.Background()
-	
+
 	// Create a valid JWT token
 	token := createTestToken(t, secret, jwt.MapClaims{
 		"sub":                "user123",
@@ -72,32 +72,32 @@ func TestJWTAuthenticator_ValidToken(t *testing.T) {
 		"iat":                time.Now().Unix(),
 		"exp":                time.Now().Add(time.Hour).Unix(),
 	})
-	
+
 	user, err := authenticator.Authenticate(ctx, token)
 	if err != nil {
 		t.Fatalf("Expected no error for valid token, got %v", err)
 	}
-	
+
 	if user == nil {
 		t.Fatal("Expected user to be returned, got nil")
 	}
-	
+
 	if user.ID != "user123" {
 		t.Errorf("Expected user ID 'user123', got '%s'", user.ID)
 	}
-	
+
 	if user.Username != "testuser" {
 		t.Errorf("Expected username 'testuser', got '%s'", user.Username)
 	}
-	
+
 	if user.Email != "test@example.com" {
 		t.Errorf("Expected email 'test@example.com', got '%s'", user.Email)
 	}
-	
+
 	if len(user.Roles) != 2 {
 		t.Errorf("Expected 2 roles, got %d", len(user.Roles))
 	}
-	
+
 	if len(user.Groups) != 1 {
 		t.Errorf("Expected 1 group, got %d", len(user.Groups))
 	}
@@ -107,19 +107,19 @@ func TestJWTAuthenticator_ExpiredToken(t *testing.T) {
 	secret := "test-secret-key"
 	authenticator := NewJWT("test", secret)
 	ctx := context.Background()
-	
+
 	// Create an expired JWT token
 	token := createTestToken(t, secret, jwt.MapClaims{
 		"sub": "user123",
 		"iat": time.Now().Add(-2 * time.Hour).Unix(),
 		"exp": time.Now().Add(-time.Hour).Unix(), // Expired 1 hour ago
 	})
-	
+
 	_, err := authenticator.Authenticate(ctx, token)
 	if err == nil {
 		t.Error("Expected error for expired token, got nil")
 	}
-	
+
 	if !containsString(err.Error(), "expired") {
 		t.Errorf("Expected error message to contain 'expired', got '%s'", err.Error())
 	}
@@ -130,14 +130,14 @@ func TestJWTAuthenticator_InvalidSignature(t *testing.T) {
 	wrongSecret := "wrong-secret-key"
 	authenticator := NewJWT("test", secret)
 	ctx := context.Background()
-	
+
 	// Create a token with wrong secret
 	token := createTestToken(t, wrongSecret, jwt.MapClaims{
 		"sub": "user123",
 		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(time.Hour).Unix(),
 	})
-	
+
 	_, err := authenticator.Authenticate(ctx, token)
 	if err == nil {
 		t.Error("Expected error for invalid signature, got nil")
@@ -148,19 +148,19 @@ func TestJWTAuthenticator_MissingSubject(t *testing.T) {
 	secret := "test-secret-key"
 	authenticator := NewJWT("test", secret)
 	ctx := context.Background()
-	
+
 	// Create a token without sub claim
 	token := createTestToken(t, secret, jwt.MapClaims{
 		"username": "testuser",
 		"iat":      time.Now().Unix(),
 		"exp":      time.Now().Add(time.Hour).Unix(),
 	})
-	
+
 	_, err := authenticator.Authenticate(ctx, token)
 	if err == nil {
 		t.Error("Expected error for missing sub claim, got nil")
 	}
-	
+
 	if !containsString(err.Error(), "sub claim is required") {
 		t.Errorf("Expected error about missing sub claim, got '%s'", err.Error())
 	}
@@ -179,7 +179,7 @@ func TestJWTAuthenticator_AuthorizedRoles(t *testing.T) {
 	}
 	authenticator := NewJWTWithConfig(config)
 	ctx := context.Background()
-	
+
 	// Test with authorized role
 	token := createTestToken(t, secret, jwt.MapClaims{
 		"sub":   "user123",
@@ -187,16 +187,16 @@ func TestJWTAuthenticator_AuthorizedRoles(t *testing.T) {
 		"iat":   time.Now().Unix(),
 		"exp":   time.Now().Add(time.Hour).Unix(),
 	})
-	
+
 	user, err := authenticator.Authenticate(ctx, token)
 	if err != nil {
 		t.Fatalf("Expected no error for authorized role, got %v", err)
 	}
-	
+
 	if user.ID != "user123" {
 		t.Errorf("Expected user ID 'user123', got '%s'", user.ID)
 	}
-	
+
 	// Test with unauthorized role
 	tokenUnauth := createTestToken(t, secret, jwt.MapClaims{
 		"sub":   "user456",
@@ -204,12 +204,12 @@ func TestJWTAuthenticator_AuthorizedRoles(t *testing.T) {
 		"iat":   time.Now().Unix(),
 		"exp":   time.Now().Add(time.Hour).Unix(),
 	})
-	
+
 	_, err = authenticator.Authenticate(ctx, tokenUnauth)
 	if err == nil {
 		t.Error("Expected error for unauthorized role, got nil")
 	}
-	
+
 	if !containsString(err.Error(), "does not have required roles") {
 		t.Errorf("Expected authorization error, got '%s'", err.Error())
 	}
@@ -226,7 +226,7 @@ func TestJWTAuthenticator_AuthorizedGroups(t *testing.T) {
 	}
 	authenticator := NewJWTWithConfig(config)
 	ctx := context.Background()
-	
+
 	// Test with authorized group
 	token := createTestToken(t, secret, jwt.MapClaims{
 		"sub":    "user123",
@@ -234,12 +234,12 @@ func TestJWTAuthenticator_AuthorizedGroups(t *testing.T) {
 		"iat":    time.Now().Unix(),
 		"exp":    time.Now().Add(time.Hour).Unix(),
 	})
-	
+
 	user, err := authenticator.Authenticate(ctx, token)
 	if err != nil {
 		t.Fatalf("Expected no error for authorized group, got %v", err)
 	}
-	
+
 	if user.ID != "user123" {
 		t.Errorf("Expected user ID 'user123', got '%s'", user.ID)
 	}
@@ -256,7 +256,7 @@ func TestJWTAuthenticator_IssuerValidation(t *testing.T) {
 	}
 	authenticator := NewJWTWithConfig(config)
 	ctx := context.Background()
-	
+
 	// Test with correct issuer
 	token := createTestToken(t, secret, jwt.MapClaims{
 		"sub": "user123",
@@ -264,12 +264,12 @@ func TestJWTAuthenticator_IssuerValidation(t *testing.T) {
 		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(time.Hour).Unix(),
 	})
-	
+
 	_, err := authenticator.Authenticate(ctx, token)
 	if err != nil {
 		t.Fatalf("Expected no error for correct issuer, got %v", err)
 	}
-	
+
 	// Test with wrong issuer
 	tokenWrongIss := createTestToken(t, secret, jwt.MapClaims{
 		"sub": "user123",
@@ -277,7 +277,7 @@ func TestJWTAuthenticator_IssuerValidation(t *testing.T) {
 		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(time.Hour).Unix(),
 	})
-	
+
 	_, err = authenticator.Authenticate(ctx, tokenWrongIss)
 	if err == nil {
 		t.Error("Expected error for wrong issuer, got nil")
@@ -295,7 +295,7 @@ func TestJWTAuthenticator_AudienceValidation(t *testing.T) {
 	}
 	authenticator := NewJWTWithConfig(config)
 	ctx := context.Background()
-	
+
 	// Test with correct audience (string)
 	token := createTestToken(t, secret, jwt.MapClaims{
 		"sub": "user123",
@@ -303,12 +303,12 @@ func TestJWTAuthenticator_AudienceValidation(t *testing.T) {
 		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(time.Hour).Unix(),
 	})
-	
+
 	_, err := authenticator.Authenticate(ctx, token)
 	if err != nil {
 		t.Fatalf("Expected no error for correct audience, got %v", err)
 	}
-	
+
 	// Test with correct audience (array)
 	tokenArray := createTestToken(t, secret, jwt.MapClaims{
 		"sub": "user123",
@@ -316,7 +316,7 @@ func TestJWTAuthenticator_AudienceValidation(t *testing.T) {
 		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(time.Hour).Unix(),
 	})
-	
+
 	_, err = authenticator.Authenticate(ctx, tokenArray)
 	if err != nil {
 		t.Fatalf("Expected no error for correct audience in array, got %v", err)
@@ -327,7 +327,7 @@ func TestJWTAuthenticator_UsernameExtraction(t *testing.T) {
 	secret := "test-secret-key"
 	authenticator := NewJWT("test", secret)
 	ctx := context.Background()
-	
+
 	testCases := []struct {
 		name     string
 		claims   jwt.MapClaims
@@ -364,7 +364,7 @@ func TestJWTAuthenticator_UsernameExtraction(t *testing.T) {
 			expected: "user123",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			token := createTestToken(t, secret, tc.claims)
@@ -372,7 +372,7 @@ func TestJWTAuthenticator_UsernameExtraction(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Expected no error, got %v", err)
 			}
-			
+
 			if user.Username != tc.expected {
 				t.Errorf("Expected username '%s', got '%s'", tc.expected, user.Username)
 			}
@@ -384,7 +384,7 @@ func TestJWTAuthenticator_Validate_Production(t *testing.T) {
 	secret := "test-secret-key"
 	authenticator := NewJWT("test", secret)
 	ctx := context.Background()
-	
+
 	// Test valid user
 	validUser := &auth.UserIdentity{
 		ID:        "user123",
@@ -394,12 +394,12 @@ func TestJWTAuthenticator_Validate_Production(t *testing.T) {
 		IssuedAt:  time.Now().Add(-time.Hour),
 		ExpiresAt: time.Now().Add(time.Hour),
 	}
-	
+
 	err := authenticator.Validate(ctx, validUser)
 	if err != nil {
 		t.Errorf("Expected no error for valid user, got %v", err)
 	}
-	
+
 	// Test expired user
 	expiredUser := &auth.UserIdentity{
 		ID:        "user123",
@@ -407,7 +407,7 @@ func TestJWTAuthenticator_Validate_Production(t *testing.T) {
 		IssuedAt:  time.Now().Add(-2 * time.Hour),
 		ExpiresAt: time.Now().Add(-time.Hour), // Expired
 	}
-	
+
 	err = authenticator.Validate(ctx, expiredUser)
 	if err == nil {
 		t.Error("Expected error for expired user, got nil")
@@ -426,9 +426,9 @@ func createTestToken(t *testing.T, secret string, claims jwt.MapClaims) string {
 }
 
 func containsString(s, substr string) bool {
-	return len(s) >= len(substr) && s[len(s)-len(substr):] == substr || 
-		   len(s) > len(substr) && s[:len(substr)] == substr ||
-		   len(s) > len(substr) && findSubstring(s, substr)
+	return len(s) >= len(substr) && s[len(s)-len(substr):] == substr ||
+		len(s) > len(substr) && s[:len(substr)] == substr ||
+		len(s) > len(substr) && findSubstring(s, substr)
 }
 
 func findSubstring(s, substr string) bool {

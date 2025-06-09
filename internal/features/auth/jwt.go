@@ -6,21 +6,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/dhirajsb/gomcp/internal/auth"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // JWTConfig holds JWT authentication configuration
 type JWTConfig struct {
-	Name            string
-	Secret          string
-	Issuer          string
-	Audience        string
-	AuthorizedRoles []string
+	Name             string
+	Secret           string
+	Issuer           string
+	Audience         string
+	AuthorizedRoles  []string
 	AuthorizedGroups []string
-	RequireExp      bool
-	RequireIat      bool
-	RequireNbf      bool
+	RequireExp       bool
+	RequireIat       bool
+	RequireNbf       bool
 }
 
 // JWTAuthenticator implements JWT-based authentication
@@ -120,14 +120,14 @@ func (ja *JWTAuthenticator) Validate(ctx context.Context, user *auth.UserIdentit
 	if user.Username == "" {
 		return fmt.Errorf("username required")
 	}
-	
+
 	// Validate token is not expired based on IssuedAt if present
 	if !user.IssuedAt.IsZero() && !user.ExpiresAt.IsZero() {
 		if time.Now().After(user.ExpiresAt) {
 			return fmt.Errorf("user token has expired")
 		}
 	}
-	
+
 	// Re-validate authorization to ensure user still has required roles/groups
 	return ja.validateAuthorization(user)
 }
@@ -135,7 +135,7 @@ func (ja *JWTAuthenticator) Validate(ctx context.Context, user *auth.UserIdentit
 // validateStandardClaims validates JWT standard claims
 func (ja *JWTAuthenticator) validateStandardClaims(claims jwt.MapClaims) error {
 	now := time.Now()
-	
+
 	// Validate expiration time (exp)
 	if ja.config.RequireExp {
 		if exp, ok := claims["exp"]; ok {
@@ -150,7 +150,7 @@ func (ja *JWTAuthenticator) validateStandardClaims(claims jwt.MapClaims) error {
 			return fmt.Errorf("exp claim is required")
 		}
 	}
-	
+
 	// Validate issued at time (iat)
 	if ja.config.RequireIat {
 		if iat, ok := claims["iat"]; ok {
@@ -165,7 +165,7 @@ func (ja *JWTAuthenticator) validateStandardClaims(claims jwt.MapClaims) error {
 			return fmt.Errorf("iat claim is required")
 		}
 	}
-	
+
 	// Validate not before time (nbf)
 	if ja.config.RequireNbf {
 		if nbf, ok := claims["nbf"]; ok {
@@ -178,7 +178,7 @@ func (ja *JWTAuthenticator) validateStandardClaims(claims jwt.MapClaims) error {
 			}
 		}
 	}
-	
+
 	// Validate issuer (iss)
 	if ja.config.Issuer != "" {
 		if iss, ok := claims["iss"]; ok {
@@ -189,7 +189,7 @@ func (ja *JWTAuthenticator) validateStandardClaims(claims jwt.MapClaims) error {
 			return fmt.Errorf("iss claim is required")
 		}
 	}
-	
+
 	// Validate audience (aud)
 	if ja.config.Audience != "" {
 		if aud, ok := claims["aud"]; ok {
@@ -212,7 +212,7 @@ func (ja *JWTAuthenticator) validateStandardClaims(claims jwt.MapClaims) error {
 			return fmt.Errorf("aud claim is required")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -223,12 +223,12 @@ func (ja *JWTAuthenticator) extractUserIdentity(claims jwt.MapClaims) (*auth.Use
 	if !ok || sub == "" {
 		return nil, fmt.Errorf("sub claim is required")
 	}
-	
+
 	// Create user identity
 	user := &auth.UserIdentity{
 		ID: sub,
 	}
-	
+
 	// Extract optional fields
 	if username, ok := claims["preferred_username"].(string); ok {
 		user.Username = username
@@ -237,43 +237,43 @@ func (ja *JWTAuthenticator) extractUserIdentity(claims jwt.MapClaims) (*auth.Use
 	} else {
 		user.Username = sub // fallback to sub
 	}
-	
+
 	if email, ok := claims["email"].(string); ok {
 		user.Email = email
 	}
-	
+
 	// Extract roles from various possible claim names
 	user.Roles = ja.extractStringArrayFromClaims(claims, []string{"roles", "realm_roles", "resource_access"})
-	
+
 	// Extract groups
 	user.Groups = ja.extractStringArrayFromClaims(claims, []string{"groups", "group_membership"})
-	
+
 	// Extract timestamps
 	if iat, ok := claims["iat"]; ok {
 		if iatTime, err := parseTimeFromClaim(iat); err == nil {
 			user.IssuedAt = iatTime
 		}
 	}
-	
+
 	if exp, ok := claims["exp"]; ok {
 		if expTime, err := parseTimeFromClaim(exp); err == nil {
 			user.ExpiresAt = expTime
 		}
 	}
-	
+
 	// Store all claims for potential future use
 	user.Claims = make(map[string]interface{})
 	for k, v := range claims {
 		user.Claims[k] = v
 	}
-	
+
 	return user, nil
 }
 
 // extractStringArrayFromClaims extracts string arrays from JWT claims with multiple possible field names
 func (ja *JWTAuthenticator) extractStringArrayFromClaims(claims jwt.MapClaims, fieldNames []string) []string {
 	var result []string
-	
+
 	for _, fieldName := range fieldNames {
 		if value, ok := claims[fieldName]; ok {
 			switch v := value.(type) {
@@ -309,7 +309,7 @@ func (ja *JWTAuthenticator) extractStringArrayFromClaims(claims jwt.MapClaims, f
 			}
 		}
 	}
-	
+
 	return result
 }
 
@@ -319,7 +319,7 @@ func (ja *JWTAuthenticator) validateAuthorization(user *auth.UserIdentity) error
 	if len(ja.config.AuthorizedRoles) == 0 && len(ja.config.AuthorizedGroups) == 0 {
 		return nil
 	}
-	
+
 	// Check roles
 	if len(ja.config.AuthorizedRoles) > 0 {
 		for _, requiredRole := range ja.config.AuthorizedRoles {
@@ -330,7 +330,7 @@ func (ja *JWTAuthenticator) validateAuthorization(user *auth.UserIdentity) error
 			}
 		}
 	}
-	
+
 	// Check groups
 	if len(ja.config.AuthorizedGroups) > 0 {
 		for _, requiredGroup := range ja.config.AuthorizedGroups {
@@ -341,7 +341,7 @@ func (ja *JWTAuthenticator) validateAuthorization(user *auth.UserIdentity) error
 			}
 		}
 	}
-	
+
 	return fmt.Errorf("user does not have required roles %v or groups %v", ja.config.AuthorizedRoles, ja.config.AuthorizedGroups)
 }
 
