@@ -10,6 +10,9 @@ import (
 	"github.com/dhirajsb/gomcp/pkg/features"
 )
 
+// Re-export JWT configuration for public API
+type JWTConfig = auth.JWTConfig
+
 // Factory functions for common feature configurations
 // These provide convenient ways to create feature implementations with sensible defaults
 
@@ -67,6 +70,63 @@ func LargeCache(name string) features.Cache {
 // JWTAuth creates a JWT authenticator with the specified secret
 func JWTAuth(name, secret string) features.Authenticator {
 	return wrapAuthenticator(auth.NewJWT(name, secret))
+}
+
+// JWTAuthWithConfig creates a JWT authenticator with full configuration
+func JWTAuthWithConfig(config *auth.JWTConfig) features.Authenticator {
+	return wrapAuthenticator(auth.NewJWTWithConfig(config))
+}
+
+// JWTAuthWithRoles creates a JWT authenticator that requires specific roles
+func JWTAuthWithRoles(name, secret string, authorizedRoles []string) features.Authenticator {
+	config := &auth.JWTConfig{
+		Name:            name,
+		Secret:          secret,
+		AuthorizedRoles: authorizedRoles,
+		RequireExp:      true,
+		RequireIat:      true,
+	}
+	return wrapAuthenticator(auth.NewJWTWithConfig(config))
+}
+
+// JWTAuthWithGroups creates a JWT authenticator that requires specific groups
+func JWTAuthWithGroups(name, secret string, authorizedGroups []string) features.Authenticator {
+	config := &auth.JWTConfig{
+		Name:             name,
+		Secret:           secret,
+		AuthorizedGroups: authorizedGroups,
+		RequireExp:       true,
+		RequireIat:       true,
+	}
+	return wrapAuthenticator(auth.NewJWTWithConfig(config))
+}
+
+// JWTAuthWithRolesAndGroups creates a JWT authenticator that requires specific roles or groups
+func JWTAuthWithRolesAndGroups(name, secret string, authorizedRoles, authorizedGroups []string) features.Authenticator {
+	config := &auth.JWTConfig{
+		Name:             name,
+		Secret:           secret,
+		AuthorizedRoles:  authorizedRoles,
+		AuthorizedGroups: authorizedGroups,
+		RequireExp:       true,
+		RequireIat:       true,
+	}
+	return wrapAuthenticator(auth.NewJWTWithConfig(config))
+}
+
+// KeycloakJWTAuth creates a JWT authenticator configured for Keycloak
+func KeycloakJWTAuth(name, secret, issuer, audience string, authorizedRoles []string) features.Authenticator {
+	config := &auth.JWTConfig{
+		Name:            name,
+		Secret:          secret,
+		Issuer:          issuer,
+		Audience:        audience,
+		AuthorizedRoles: authorizedRoles,
+		RequireExp:      true,
+		RequireIat:      true,
+		RequireNbf:      false,
+	}
+	return wrapAuthenticator(auth.NewJWTWithConfig(config))
 }
 
 // Security Factories

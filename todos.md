@@ -2,6 +2,8 @@
 
 ## High Priority
 
+- [x] **Implement production-ready JWT authentication** - Replace mock JWT validation with proper JWT library (github.com/golang-jwt/jwt/v5), signature verification, expiration checking, and claims validation
+- [ ] **Enhance security validator** - Add comprehensive input validation, XSS protection, SQL injection detection, request sanitization, rate limiting, and content filtering
 - [ ] Add automatic JSON schema generation for MCP tool parameters, resource schemas, and prompt arguments using jsonschema library
 - [ ] Create CLI tool for MCP project scaffolding with templates and best practices
 - [ ] Add hot reload development mode for automatic server restart on code changes
@@ -14,6 +16,8 @@
 
 ## Medium Priority
 
+- [ ] **Implement production-ready metrics provider** - Replace console logging with real metrics storage, aggregation, and export to Prometheus/StatsD/monitoring systems
+- [ ] **Improve cache implementation** - Add LRU eviction policies, background TTL cleanup, and optional persistence support
 - [ ] Add GitHub Actions CI/CD pipeline for automated testing on PRs and main branch
 - [ ] Implement comprehensive code coverage tracking and reporting with minimum thresholds
 - [ ] Create request/response logging middleware for debugging and monitoring
