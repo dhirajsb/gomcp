@@ -10,8 +10,9 @@ import (
 	"github.com/dhirajsb/gomcp/pkg/features"
 )
 
-// Re-export JWT configuration for public API
+// Re-export configurations for public API
 type JWTConfig = auth.JWTConfig
+type PrometheusConfig = metrics.PrometheusConfig
 
 // Factory functions for common feature configurations
 // These provide convenient ways to create feature implementations with sensible defaults
@@ -165,6 +166,48 @@ func SimpleMetrics(name string) features.MetricsProvider {
 	return metrics.NewSimple(name)
 }
 
+// PrometheusMetrics creates a Prometheus metrics provider with default configuration
+func PrometheusMetrics(name string) features.MetricsProvider {
+	return metrics.NewPrometheus(name)
+}
+
+// PrometheusMetricsWithConfig creates a Prometheus metrics provider with custom configuration
+func PrometheusMetricsWithConfig(name string, config *metrics.PrometheusConfig) features.MetricsProvider {
+	return metrics.NewPrometheusWithConfig(name, *config)
+}
+
+// PrometheusMetricsWithHTTP creates a Prometheus metrics provider with HTTP endpoint
+func PrometheusMetricsWithHTTP(name string, port int, path string) features.MetricsProvider {
+	config := metrics.PrometheusConfig{
+		Namespace:         "gomcp",
+		Subsystem:         "server",
+		EnableHTTPHandler: true,
+		HTTPPath:          path,
+		HTTPPort:          port,
+		DurationBuckets:   []float64{0.001, 0.01, 0.1, 0.5, 1.0, 2.5, 5.0, 10.0},
+		SizeBuckets:       []float64{100, 1024, 10240, 102400, 1048576, 10485760},
+	}
+	return metrics.NewPrometheusWithConfig(name, config)
+}
+
+// ProductionMetrics creates a Prometheus metrics provider suitable for production
+func ProductionMetrics(serviceName, version string) features.MetricsProvider {
+	config := metrics.PrometheusConfig{
+		Namespace: "gomcp",
+		Subsystem: "server",
+		DefaultLabels: map[string]string{
+			"service": serviceName,
+			"version": version,
+		},
+		EnableHTTPHandler: true,
+		HTTPPath:          "/metrics",
+		HTTPPort:          9090,
+		DurationBuckets:   []float64{0.001, 0.01, 0.1, 0.5, 1.0, 2.5, 5.0, 10.0},
+		SizeBuckets:       []float64{100, 1024, 10240, 102400, 1048576, 10485760},
+	}
+	return metrics.NewPrometheusWithConfig("prometheus", config)
+}
+
 // Preset Configuration Factories
 
 // BasicLogging returns a basic logging setup with console and JSON loggers
@@ -284,7 +327,7 @@ func QuickProd(name, version string) *Builder {
 		WithProductionCaching().
 		WithSecurity(StrictValidator("security")).
 		WithTelemetry(ProdTelemetry(name)).
-		WithMetrics(SimpleMetrics("prod"))
+		WithMetrics(ProductionMetrics(name, version))
 }
 
 // Preset builder methods for common configurations
@@ -309,5 +352,6 @@ func Production(name, version string) *Builder {
 		WithLogger(JSONLogger("audit", "warn")).
 		WithCache(MediumCache("default")).
 		WithSecurity(StrictValidator("security")).
-		WithTelemetry(OTLPTelemetry("prod", "http://otel-collector:4318"))
+		WithTelemetry(OTLPTelemetry("prod", "http://otel-collector:4318")).
+		WithMetrics(ProductionMetrics(name, version))
 }
