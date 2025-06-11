@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dhirajsb/gomcp/internal/logging"
+	"github.com/dhirajsb/gomcp/pkg/features"
 )
 
 func TestNewConsole(t *testing.T) {
@@ -17,8 +17,8 @@ func TestNewConsole(t *testing.T) {
 		t.Errorf("Expected name 'test-logger', got '%s'", logger.name)
 	}
 
-	if logger.level != logging.LogLevelInfo {
-		t.Errorf("Expected level %v, got %v", logging.LogLevelInfo, logger.level)
+	if logger.level != features.INFO {
+		t.Errorf("Expected level %v, got %v", features.INFO, logger.level)
 	}
 }
 
@@ -43,7 +43,7 @@ func TestConsoleLogger_Log(t *testing.T) {
 		"action": "login",
 	}
 
-	logger.Log(logging.LogLevelInfo, "User logged in", fields)
+	logger.Log(features.INFO, "User logged in", fields)
 
 	output := buf.String()
 
@@ -74,14 +74,14 @@ func TestConsoleLogger_LogLevels(t *testing.T) {
 	logger := NewConsole("test", "info")
 
 	tests := []struct {
-		level     logging.LogLevel
+		level     features.LogLevel
 		message   string
 		shouldLog bool
 	}{
-		{logging.LogLevelDebug, "debug message", false}, // Should not log
-		{logging.LogLevelInfo, "info message", true},    // Should log
-		{logging.LogLevelWarn, "warn message", true},    // Should log
-		{logging.LogLevelError, "error message", true},  // Should log
+		{features.DEBUG, "debug message", false}, // Should not log
+		{features.INFO, "info message", true},    // Should log
+		{features.WARN, "warn message", true},    // Should log
+		{features.ERROR, "error message", true},  // Should log
 	}
 
 	for _, test := range tests {
@@ -110,18 +110,18 @@ func TestConsoleLogger_Close(t *testing.T) {
 func TestParseLogLevel(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected logging.LogLevel
+		expected features.LogLevel
 	}{
-		{"debug", logging.LogLevelDebug},
-		{"DEBUG", logging.LogLevelDebug},
-		{"info", logging.LogLevelInfo},
-		{"INFO", logging.LogLevelInfo},
-		{"warn", logging.LogLevelWarn},
-		{"warning", logging.LogLevelWarn},
-		{"error", logging.LogLevelError},
-		{"ERROR", logging.LogLevelError},
-		{"invalid", logging.LogLevelInfo}, // Default
-		{"", logging.LogLevelInfo},        // Default
+		{"debug", features.DEBUG},
+		{"DEBUG", features.DEBUG},
+		{"info", features.INFO},
+		{"INFO", features.INFO},
+		{"warn", features.WARN},
+		{"warning", features.WARN},
+		{"error", features.ERROR},
+		{"ERROR", features.ERROR},
+		{"invalid", features.INFO}, // Default
+		{"", features.INFO},        // Default
 	}
 
 	for _, test := range tests {
@@ -146,7 +146,7 @@ func TestConsoleLogger_WithFields(t *testing.T) {
 		"nil_field":    nil,
 	}
 
-	logger.Log(logging.LogLevelInfo, "Test with fields", fields)
+	logger.Log(features.INFO, "Test with fields", fields)
 
 	output := buf.String()
 

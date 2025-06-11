@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dhirajsb/gomcp/internal/logging"
+	"github.com/dhirajsb/gomcp/pkg/features"
 )
 
 // stripLogPrefix removes Go's standard log timestamp prefix from output
@@ -28,8 +28,8 @@ func TestNewJSON(t *testing.T) {
 		t.Errorf("Expected name 'json-logger', got '%s'", logger.name)
 	}
 
-	if logger.level != logging.LogLevelWarn {
-		t.Errorf("Expected level %v, got %v", logging.LogLevelWarn, logger.level)
+	if logger.level != features.WARN {
+		t.Errorf("Expected level %v, got %v", features.WARN, logger.level)
 	}
 }
 
@@ -56,7 +56,7 @@ func TestJSONLogger_Log(t *testing.T) {
 		"success": true,
 	}
 
-	logger.Log(logging.LogLevelInfo, "Resource created", fields)
+	logger.Log(features.INFO, "Resource created", fields)
 
 	output := buf.String()
 
@@ -117,14 +117,14 @@ func TestJSONLogger_LogLevels(t *testing.T) {
 	logger := NewJSON("test", "warn")
 
 	tests := []struct {
-		level     logging.LogLevel
+		level     features.LogLevel
 		message   string
 		shouldLog bool
 	}{
-		{logging.LogLevelDebug, "debug message", false}, // Should not log
-		{logging.LogLevelInfo, "info message", false},   // Should not log
-		{logging.LogLevelWarn, "warn message", true},    // Should log
-		{logging.LogLevelError, "error message", true},  // Should log
+		{features.DEBUG, "debug message", false}, // Should not log
+		{features.INFO, "info message", false},   // Should not log
+		{features.WARN, "warn message", true},    // Should log
+		{features.ERROR, "error message", true},  // Should log
 	}
 
 	for _, test := range tests {
@@ -149,7 +149,7 @@ func TestJSONLogger_EmptyFields(t *testing.T) {
 	logger := NewJSON("test", "info")
 
 	// Test with nil fields
-	logger.Log(logging.LogLevelInfo, "Test message", nil)
+	logger.Log(features.INFO, "Test message", nil)
 
 	output := buf.String()
 
@@ -183,7 +183,7 @@ func TestJSONLogger_FieldOverrides(t *testing.T) {
 		"message":   "custom-message", // This should override the message
 	}
 
-	logger.Log(logging.LogLevelInfo, "Original message", fields)
+	logger.Log(features.INFO, "Original message", fields)
 
 	output := buf.String()
 
@@ -234,7 +234,7 @@ func TestJSONLogger_ComplexFields(t *testing.T) {
 		"float": 3.14159,
 	}
 
-	logger.Log(logging.LogLevelInfo, "Complex fields test", fields)
+	logger.Log(features.INFO, "Complex fields test", fields)
 
 	output := buf.String()
 

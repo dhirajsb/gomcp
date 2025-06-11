@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/dhirajsb/gomcp/internal/logging"
 	"github.com/dhirajsb/gomcp/pkg/builder"
+	"github.com/dhirajsb/gomcp/pkg/features"
 	"github.com/dhirajsb/gomcp/pkg/gomcp"
 )
 
@@ -88,7 +88,7 @@ func main() {
 	fmt.Printf("Server has %d loggers configured\n", len(loggers))
 
 	for _, logger := range loggers {
-		logger.Log(logging.LogLevelInfo, "Server started", map[string]interface{}{
+		logger.Log(features.INFO, "Server started", map[string]interface{}{
 			"server":  "example-server",
 			"version": "1.0.0",
 		})
@@ -130,7 +130,7 @@ func main() {
 	}
 
 	if auditLogger := builtMultiServer.GetLoggerByName("audit"); auditLogger != nil {
-		auditLogger.Log(logging.LogLevelWarn, "Audit event", map[string]interface{}{
+		auditLogger.Log(features.WARN, "Audit event", map[string]interface{}{
 			"action": "server_start",
 			"user":   "system",
 		})

@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/dhirajsb/gomcp/pkg/features"
 )
 
 // JSONFormatter formats log entries as JSON
@@ -144,21 +146,21 @@ const (
 )
 
 // getLevelColor returns the ANSI color code for a log level
-func (f *TextFormatter) getLevelColor(level LogLevel) string {
+func (f *TextFormatter) getLevelColor(level features.LogLevel) string {
 	if !f.ColorOutput {
 		return ""
 	}
 
 	switch level {
-	case LogLevelTrace:
+	case features.TRACE:
 		return ColorGray
-	case LogLevelDebug:
+	case features.DEBUG:
 		return ColorCyan
-	case LogLevelInfo:
+	case features.INFO:
 		return ColorBlue
-	case LogLevelWarn:
+	case features.WARN:
 		return ColorYellow
-	case LogLevelError, LogLevelFatal:
+	case features.ERROR, features.FATAL:
 		return ColorRed
 	default:
 		return ColorWhite

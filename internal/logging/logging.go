@@ -8,59 +8,30 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/dhirajsb/gomcp/pkg/features"
 )
 
-// LogLevel represents the severity level of a log entry
-type LogLevel int
-
-const (
-	LogLevelTrace LogLevel = iota
-	LogLevelDebug
-	LogLevelInfo
-	LogLevelWarn
-	LogLevelError
-	LogLevelFatal
-)
-
-// String returns the string representation of the log level
-func (l LogLevel) String() string {
-	switch l {
-	case LogLevelTrace:
-		return "TRACE"
-	case LogLevelDebug:
-		return "DEBUG"
-	case LogLevelInfo:
-		return "INFO"
-	case LogLevelWarn:
-		return "WARN"
-	case LogLevelError:
-		return "ERROR"
-	case LogLevelFatal:
-		return "FATAL"
-	default:
-		return "UNKNOWN"
-	}
-}
 
 // LogEntry represents a single log entry
 type LogEntry struct {
-	Timestamp time.Time              `json:"timestamp"`
-	Level     LogLevel               `json:"level"`
-	Message   string                 `json:"message"`
-	Fields    map[string]interface{} `json:"fields,omitempty"`
-	Logger    string                 `json:"logger,omitempty"`
-	Component string                 `json:"component,omitempty"`
-	UserID    string                 `json:"user_id,omitempty"`
-	SessionID string                 `json:"session_id,omitempty"`
-	RequestID string                 `json:"request_id,omitempty"`
-	TraceID   string                 `json:"trace_id,omitempty"`
-	SpanID    string                 `json:"span_id,omitempty"`
-	Caller    *CallerInfo            `json:"caller,omitempty"`
-	Stack     string                 `json:"stack,omitempty"`
-	Duration  time.Duration          `json:"duration,omitempty"`
-	Error     string                 `json:"error,omitempty"`
-	Tags      []string               `json:"tags,omitempty"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	Timestamp time.Time                `json:"timestamp"`
+	Level     features.LogLevel        `json:"level"`
+	Message   string                   `json:"message"`
+	Fields    map[string]interface{}   `json:"fields,omitempty"`
+	Logger    string                   `json:"logger,omitempty"`
+	Component string                   `json:"component,omitempty"`
+	UserID    string                   `json:"user_id,omitempty"`
+	SessionID string                   `json:"session_id,omitempty"`
+	RequestID string                   `json:"request_id,omitempty"`
+	TraceID   string                   `json:"trace_id,omitempty"`
+	SpanID    string                   `json:"span_id,omitempty"`
+	Caller    *CallerInfo              `json:"caller,omitempty"`
+	Stack     string                   `json:"stack,omitempty"`
+	Duration  time.Duration            `json:"duration,omitempty"`
+	Error     string                   `json:"error,omitempty"`
+	Tags      []string                 `json:"tags,omitempty"`
+	Metadata  map[string]interface{}   `json:"metadata,omitempty"`
 }
 
 // CallerInfo holds information about the caller
@@ -100,9 +71,9 @@ type Logger interface {
 	WithTags(tags ...string) Logger
 
 	// Configuration
-	SetLevel(level LogLevel)
-	GetLevel() LogLevel
-	IsEnabled(level LogLevel) bool
+	SetLevel(level features.LogLevel)
+	GetLevel() features.LogLevel
+	IsEnabled(level features.LogLevel) bool
 
 	// Output management
 	AddOutput(output LogOutput) error
@@ -141,7 +112,7 @@ type LogFormatter interface {
 // LoggerConfig holds logger configuration
 type LoggerConfig struct {
 	Name          string                 `json:"name"`
-	Level         LogLevel               `json:"level"`
+	Level         features.LogLevel               `json:"level"`
 	Component     string                 `json:"component"`
 	Outputs       []OutputConfig         `json:"outputs"`
 	Formatter     string                 `json:"formatter"` // "json", "text", "logfmt"
@@ -157,7 +128,7 @@ type LoggerConfig struct {
 type OutputConfig struct {
 	Name    string                 `json:"name"`
 	Type    string                 `json:"type"`  // "file", "stdout", "stderr", "syslog", "webhook", "elasticsearch"
-	Level   LogLevel               `json:"level"` // Minimum level for this output
+	Level   features.LogLevel               `json:"level"` // Minimum level for this output
 	Enabled bool                   `json:"enabled"`
 	Config  map[string]interface{} `json:"config"`
 }
@@ -165,9 +136,9 @@ type OutputConfig struct {
 // LoggerStats holds logger statistics
 type LoggerStats struct {
 	Name           string                 `json:"name"`
-	Level          LogLevel               `json:"level"`
+	Level          features.LogLevel               `json:"level"`
 	TotalEntries   int64                  `json:"total_entries"`
-	EntriesByLevel map[LogLevel]int64     `json:"entries_by_level"`
+	EntriesByLevel map[features.LogLevel]int64     `json:"entries_by_level"`
 	ErrorCount     int64                  `json:"error_count"`
 	LastEntry      time.Time              `json:"last_entry"`
 	Uptime         time.Duration          `json:"uptime"`
@@ -187,7 +158,7 @@ type OutputStats struct {
 // StandardLogger implements the Logger interface
 type StandardLogger struct {
 	config    LoggerConfig
-	level     LogLevel
+	level     features.LogLevel
 	outputs   map[string]LogOutput
 	formatter LogFormatter
 	fields    map[string]interface{}
@@ -224,7 +195,7 @@ func NewLogger(config LoggerConfig) (*StandardLogger, error) {
 		stats: &LoggerStats{
 			Name:           config.Name,
 			Level:          config.Level,
-			EntriesByLevel: make(map[LogLevel]int64),
+			EntriesByLevel: make(map[features.LogLevel]int64),
 			OutputStats:    make(map[string]OutputStats),
 		},
 		ctx:       ctx,
@@ -309,7 +280,7 @@ func (l *StandardLogger) addOutput(config OutputConfig) error {
 }
 
 // Log writes a log entry
-func (l *StandardLogger) log(level LogLevel, msg string, fields ...Field) {
+func (l *StandardLogger) log(level features.LogLevel, msg string, fields ...Field) {
 	if !l.IsEnabled(level) {
 		return
 	}
@@ -329,7 +300,7 @@ func (l *StandardLogger) log(level LogLevel, msg string, fields ...Field) {
 }
 
 // createEntry creates a new log entry
-func (l *StandardLogger) createEntry(level LogLevel, msg string, fields ...Field) *LogEntry {
+func (l *StandardLogger) createEntry(level features.LogLevel, msg string, fields ...Field) *LogEntry {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 
@@ -360,7 +331,7 @@ func (l *StandardLogger) createEntry(level LogLevel, msg string, fields ...Field
 	}
 
 	// Add stack trace if enabled and error level
-	if l.config.IncludeStack && level >= LogLevelError {
+	if l.config.IncludeStack && level >= features.ERROR {
 		entry.Stack = getStack(3)
 	}
 
@@ -432,35 +403,35 @@ func (l *StandardLogger) flushTimer() {
 }
 
 // Basic logging methods
-func (l *StandardLogger) Trace(msg string, fields ...Field) { l.log(LogLevelTrace, msg, fields...) }
-func (l *StandardLogger) Debug(msg string, fields ...Field) { l.log(LogLevelDebug, msg, fields...) }
-func (l *StandardLogger) Info(msg string, fields ...Field)  { l.log(LogLevelInfo, msg, fields...) }
-func (l *StandardLogger) Warn(msg string, fields ...Field)  { l.log(LogLevelWarn, msg, fields...) }
-func (l *StandardLogger) Error(msg string, fields ...Field) { l.log(LogLevelError, msg, fields...) }
+func (l *StandardLogger) Trace(msg string, fields ...Field) { l.log(features.TRACE, msg, fields...) }
+func (l *StandardLogger) Debug(msg string, fields ...Field) { l.log(features.DEBUG, msg, fields...) }
+func (l *StandardLogger) Info(msg string, fields ...Field)  { l.log(features.INFO, msg, fields...) }
+func (l *StandardLogger) Warn(msg string, fields ...Field)  { l.log(features.WARN, msg, fields...) }
+func (l *StandardLogger) Error(msg string, fields ...Field) { l.log(features.ERROR, msg, fields...) }
 func (l *StandardLogger) Fatal(msg string, fields ...Field) {
-	l.log(LogLevelFatal, msg, fields...)
+	l.log(features.FATAL, msg, fields...)
 	l.Flush()
 	os.Exit(1)
 }
 
 // Formatted logging methods
 func (l *StandardLogger) Tracef(format string, args ...interface{}) {
-	l.log(LogLevelTrace, fmt.Sprintf(format, args...))
+	l.log(features.TRACE, fmt.Sprintf(format, args...))
 }
 func (l *StandardLogger) Debugf(format string, args ...interface{}) {
-	l.log(LogLevelDebug, fmt.Sprintf(format, args...))
+	l.log(features.DEBUG, fmt.Sprintf(format, args...))
 }
 func (l *StandardLogger) Infof(format string, args ...interface{}) {
-	l.log(LogLevelInfo, fmt.Sprintf(format, args...))
+	l.log(features.INFO, fmt.Sprintf(format, args...))
 }
 func (l *StandardLogger) Warnf(format string, args ...interface{}) {
-	l.log(LogLevelWarn, fmt.Sprintf(format, args...))
+	l.log(features.WARN, fmt.Sprintf(format, args...))
 }
 func (l *StandardLogger) Errorf(format string, args ...interface{}) {
-	l.log(LogLevelError, fmt.Sprintf(format, args...))
+	l.log(features.ERROR, fmt.Sprintf(format, args...))
 }
 func (l *StandardLogger) Fatalf(format string, args ...interface{}) {
-	l.log(LogLevelFatal, fmt.Sprintf(format, args...))
+	l.log(features.FATAL, fmt.Sprintf(format, args...))
 	l.Flush()
 	os.Exit(1)
 }
@@ -584,20 +555,20 @@ func (l *StandardLogger) copy() *StandardLogger {
 }
 
 // Configuration methods
-func (l *StandardLogger) SetLevel(level LogLevel) {
+func (l *StandardLogger) SetLevel(level features.LogLevel) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.level = level
 	l.stats.Level = level
 }
 
-func (l *StandardLogger) GetLevel() LogLevel {
+func (l *StandardLogger) GetLevel() features.LogLevel {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 	return l.level
 }
 
-func (l *StandardLogger) IsEnabled(level LogLevel) bool {
+func (l *StandardLogger) IsEnabled(level features.LogLevel) bool {
 	return level >= l.GetLevel()
 }
 

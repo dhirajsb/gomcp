@@ -5,13 +5,13 @@ import (
 	"log"
 	"time"
 
-	"github.com/dhirajsb/gomcp/internal/logging"
+	"github.com/dhirajsb/gomcp/pkg/features"
 )
 
 // JSONLogger implements a JSON formatter logger
 type JSONLogger struct {
 	name  string
-	level logging.LogLevel
+	level features.LogLevel
 }
 
 // NewJSON creates a new JSON logger
@@ -27,7 +27,7 @@ func (jl *JSONLogger) Name() string {
 	return jl.name
 }
 
-func (jl *JSONLogger) Log(level logging.LogLevel, message string, fields map[string]interface{}) {
+func (jl *JSONLogger) Log(level features.LogLevel, message string, fields map[string]interface{}) {
 	if level < jl.level {
 		return
 	}
@@ -56,3 +56,4 @@ func (jl *JSONLogger) Log(level logging.LogLevel, message string, fields map[str
 func (jl *JSONLogger) Close() error {
 	return nil
 }
+

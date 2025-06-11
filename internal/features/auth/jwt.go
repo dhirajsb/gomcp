@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dhirajsb/gomcp/internal/auth"
+	"github.com/dhirajsb/gomcp/pkg/features"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -57,7 +57,7 @@ func (ja *JWTAuthenticator) Name() string {
 	return ja.config.Name
 }
 
-func (ja *JWTAuthenticator) Authenticate(ctx context.Context, token string) (*auth.UserIdentity, error) {
+func (ja *JWTAuthenticator) Authenticate(ctx context.Context, token string) (*features.UserIdentity, error) {
 	if token == "" {
 		return nil, fmt.Errorf("no token provided")
 	}
@@ -110,7 +110,7 @@ func (ja *JWTAuthenticator) Authenticate(ctx context.Context, token string) (*au
 	return userIdentity, nil
 }
 
-func (ja *JWTAuthenticator) Validate(ctx context.Context, user *auth.UserIdentity) error {
+func (ja *JWTAuthenticator) Validate(ctx context.Context, user *features.UserIdentity) error {
 	if user == nil {
 		return fmt.Errorf("user cannot be nil")
 	}
@@ -217,7 +217,7 @@ func (ja *JWTAuthenticator) validateStandardClaims(claims jwt.MapClaims) error {
 }
 
 // extractUserIdentity extracts user identity from JWT claims
-func (ja *JWTAuthenticator) extractUserIdentity(claims jwt.MapClaims) (*auth.UserIdentity, error) {
+func (ja *JWTAuthenticator) extractUserIdentity(claims jwt.MapClaims) (*features.UserIdentity, error) {
 	// Extract required fields
 	sub, ok := claims["sub"].(string)
 	if !ok || sub == "" {
@@ -225,7 +225,7 @@ func (ja *JWTAuthenticator) extractUserIdentity(claims jwt.MapClaims) (*auth.Use
 	}
 
 	// Create user identity
-	user := &auth.UserIdentity{
+	user := &features.UserIdentity{
 		ID: sub,
 	}
 
@@ -314,7 +314,7 @@ func (ja *JWTAuthenticator) extractStringArrayFromClaims(claims jwt.MapClaims, f
 }
 
 // validateAuthorization checks if user has required roles or groups
-func (ja *JWTAuthenticator) validateAuthorization(user *auth.UserIdentity) error {
+func (ja *JWTAuthenticator) validateAuthorization(user *features.UserIdentity) error {
 	// If no authorization requirements are configured, allow all authenticated users
 	if len(ja.config.AuthorizedRoles) == 0 && len(ja.config.AuthorizedGroups) == 0 {
 		return nil

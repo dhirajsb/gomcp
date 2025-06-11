@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dhirajsb/gomcp/internal/auth"
+	"github.com/dhirajsb/gomcp/pkg/features"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -386,7 +386,7 @@ func TestJWTAuthenticator_Validate_Production(t *testing.T) {
 	ctx := context.Background()
 
 	// Test valid user
-	validUser := &auth.UserIdentity{
+	validUser := &features.UserIdentity{
 		ID:        "user123",
 		Username:  "testuser",
 		Email:     "test@example.com",
@@ -401,7 +401,7 @@ func TestJWTAuthenticator_Validate_Production(t *testing.T) {
 	}
 
 	// Test expired user
-	expiredUser := &auth.UserIdentity{
+	expiredUser := &features.UserIdentity{
 		ID:        "user123",
 		Username:  "testuser",
 		IssuedAt:  time.Now().Add(-2 * time.Hour),

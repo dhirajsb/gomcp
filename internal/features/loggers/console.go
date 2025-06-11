@@ -5,13 +5,13 @@ import (
 	"log"
 	"strings"
 
-	"github.com/dhirajsb/gomcp/internal/logging"
+	"github.com/dhirajsb/gomcp/pkg/features"
 )
 
 // ConsoleLogger implements a console logger that outputs to stdout
 type ConsoleLogger struct {
 	name  string
-	level logging.LogLevel
+	level features.LogLevel
 }
 
 // NewConsole creates a new console logger
@@ -27,7 +27,7 @@ func (cl *ConsoleLogger) Name() string {
 	return cl.name
 }
 
-func (cl *ConsoleLogger) Log(level logging.LogLevel, message string, fields map[string]interface{}) {
+func (cl *ConsoleLogger) Log(level features.LogLevel, message string, fields map[string]interface{}) {
 	if level < cl.level {
 		return
 	}
@@ -48,17 +48,3 @@ func (cl *ConsoleLogger) Close() error {
 	return nil
 }
 
-func parseLogLevel(level string) logging.LogLevel {
-	switch strings.ToLower(level) {
-	case "debug":
-		return logging.LogLevelDebug
-	case "info":
-		return logging.LogLevelInfo
-	case "warn", "warning":
-		return logging.LogLevelWarn
-	case "error":
-		return logging.LogLevelError
-	default:
-		return logging.LogLevelInfo
-	}
-}

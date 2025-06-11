@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/dhirajsb/gomcp/pkg/features"
 )
 
 // MockOutput for testing
@@ -60,7 +62,7 @@ func (m *MockOutput) GetEntries() []*LogEntry {
 func TestNewLogger(t *testing.T) {
 	config := LoggerConfig{
 		Name:  "test-logger",
-		Level: LogLevelInfo,
+		Level: features.INFO,
 		Outputs: []OutputConfig{
 			{
 				Name:    "mock",
@@ -84,7 +86,7 @@ func TestNewLogger(t *testing.T) {
 		t.Errorf("Expected logger name test-logger, got %s", logger.config.Name)
 	}
 
-	if logger.level != LogLevelInfo {
+	if logger.level != features.INFO {
 		t.Errorf("Expected level info, got %v", logger.level)
 	}
 }
@@ -92,7 +94,7 @@ func TestNewLogger(t *testing.T) {
 func TestLogger_BasicLogging(t *testing.T) {
 	config := LoggerConfig{
 		Name:    "test-logger",
-		Level:   LogLevelDebug,
+		Level:   features.DEBUG,
 		Async:   false, // Synchronous for testing
 		Outputs: []OutputConfig{},
 	}
@@ -117,7 +119,7 @@ func TestLogger_BasicLogging(t *testing.T) {
 		t.Errorf("Expected 4 log entries, got %d", len(entries))
 	}
 
-	expectedLevels := []LogLevel{LogLevelDebug, LogLevelInfo, LogLevelWarn, LogLevelError}
+	expectedLevels := []features.LogLevel{features.DEBUG, features.INFO, features.WARN, features.ERROR}
 	expectedMessages := []string{"Debug message", "Info message", "Warning message", "Error message"}
 
 	for i, entry := range entries {
@@ -133,7 +135,7 @@ func TestLogger_BasicLogging(t *testing.T) {
 func TestLogger_FormattedLogging(t *testing.T) {
 	config := LoggerConfig{
 		Name:    "test-logger",
-		Level:   LogLevelDebug,
+		Level:   features.DEBUG,
 		Async:   false,
 		Outputs: []OutputConfig{},
 	}
@@ -167,7 +169,7 @@ func TestLogger_FormattedLogging(t *testing.T) {
 func TestLogger_WithFields(t *testing.T) {
 	config := LoggerConfig{
 		Name:    "test-logger",
-		Level:   LogLevelDebug,
+		Level:   features.DEBUG,
 		Async:   false,
 		Outputs: []OutputConfig{},
 	}
@@ -211,7 +213,7 @@ func TestLogger_WithFields(t *testing.T) {
 func TestLogger_WithContext(t *testing.T) {
 	config := LoggerConfig{
 		Name:    "test-logger",
-		Level:   LogLevelDebug,
+		Level:   features.DEBUG,
 		Async:   false,
 		Outputs: []OutputConfig{},
 	}
@@ -251,7 +253,7 @@ func TestLogger_WithContext(t *testing.T) {
 func TestLogger_WithChaining(t *testing.T) {
 	config := LoggerConfig{
 		Name:    "test-logger",
-		Level:   LogLevelDebug,
+		Level:   features.DEBUG,
 		Async:   false,
 		Outputs: []OutputConfig{},
 	}
@@ -297,7 +299,7 @@ func TestLogger_WithChaining(t *testing.T) {
 func TestLogger_LogLevels(t *testing.T) {
 	config := LoggerConfig{
 		Name:    "test-logger",
-		Level:   LogLevelWarn, // Only warn and above
+		Level:   features.WARN, // Only warn and above
 		Async:   false,
 		Outputs: []OutputConfig{},
 	}
@@ -321,11 +323,11 @@ func TestLogger_LogLevels(t *testing.T) {
 		t.Errorf("Expected 2 log entries (warn and error), got %d", len(entries))
 	}
 
-	if entries[0].Level != LogLevelWarn {
+	if entries[0].Level != features.WARN {
 		t.Errorf("Expected first entry to be warn level, got %v", entries[0].Level)
 	}
 
-	if entries[1].Level != LogLevelError {
+	if entries[1].Level != features.ERROR {
 		t.Errorf("Expected second entry to be error level, got %v", entries[1].Level)
 	}
 }
@@ -333,7 +335,7 @@ func TestLogger_LogLevels(t *testing.T) {
 func TestLogger_IsEnabled(t *testing.T) {
 	config := LoggerConfig{
 		Name:  "test-logger",
-		Level: LogLevelWarn,
+		Level: features.WARN,
 	}
 
 	logger, err := NewLogger(config)
@@ -342,23 +344,23 @@ func TestLogger_IsEnabled(t *testing.T) {
 	}
 
 	// Test IsEnabled
-	if logger.IsEnabled(LogLevelDebug) {
+	if logger.IsEnabled(features.DEBUG) {
 		t.Error("Expected debug to be disabled")
 	}
 
-	if logger.IsEnabled(LogLevelInfo) {
+	if logger.IsEnabled(features.INFO) {
 		t.Error("Expected info to be disabled")
 	}
 
-	if !logger.IsEnabled(LogLevelWarn) {
+	if !logger.IsEnabled(features.WARN) {
 		t.Error("Expected warn to be enabled")
 	}
 
-	if !logger.IsEnabled(LogLevelError) {
+	if !logger.IsEnabled(features.ERROR) {
 		t.Error("Expected error to be enabled")
 	}
 
-	if !logger.IsEnabled(LogLevelFatal) {
+	if !logger.IsEnabled(features.FATAL) {
 		t.Error("Expected fatal to be enabled")
 	}
 }
@@ -366,7 +368,7 @@ func TestLogger_IsEnabled(t *testing.T) {
 func TestLogger_SetLevel(t *testing.T) {
 	config := LoggerConfig{
 		Name:  "test-logger",
-		Level: LogLevelInfo,
+		Level: features.INFO,
 	}
 
 	logger, err := NewLogger(config)
@@ -375,18 +377,18 @@ func TestLogger_SetLevel(t *testing.T) {
 	}
 
 	// Change level
-	logger.SetLevel(LogLevelError)
+	logger.SetLevel(features.ERROR)
 
-	if logger.GetLevel() != LogLevelError {
+	if logger.GetLevel() != features.ERROR {
 		t.Errorf("Expected level to be error, got %v", logger.GetLevel())
 	}
 
 	// Test that lower levels are now disabled
-	if logger.IsEnabled(LogLevelInfo) {
+	if logger.IsEnabled(features.INFO) {
 		t.Error("Expected info to be disabled after level change")
 	}
 
-	if !logger.IsEnabled(LogLevelError) {
+	if !logger.IsEnabled(features.ERROR) {
 		t.Error("Expected error to be enabled after level change")
 	}
 }
@@ -394,7 +396,7 @@ func TestLogger_SetLevel(t *testing.T) {
 func TestLogger_Stats(t *testing.T) {
 	config := LoggerConfig{
 		Name:    "test-logger",
-		Level:   LogLevelDebug,
+		Level:   features.DEBUG,
 		Async:   false,
 		Outputs: []OutputConfig{},
 	}
@@ -424,12 +426,12 @@ func TestLogger_Stats(t *testing.T) {
 		t.Errorf("Expected 4 total entries, got %d", stats.TotalEntries)
 	}
 
-	if stats.EntriesByLevel[LogLevelDebug] != 1 {
-		t.Errorf("Expected 1 debug entry, got %d", stats.EntriesByLevel[LogLevelDebug])
+	if stats.EntriesByLevel[features.DEBUG] != 1 {
+		t.Errorf("Expected 1 debug entry, got %d", stats.EntriesByLevel[features.DEBUG])
 	}
 
-	if stats.EntriesByLevel[LogLevelInfo] != 1 {
-		t.Errorf("Expected 1 info entry, got %d", stats.EntriesByLevel[LogLevelInfo])
+	if stats.EntriesByLevel[features.INFO] != 1 {
+		t.Errorf("Expected 1 info entry, got %d", stats.EntriesByLevel[features.INFO])
 	}
 
 	if stats.Uptime <= 0 {
@@ -440,7 +442,7 @@ func TestLogger_Stats(t *testing.T) {
 func TestLogger_OutputManagement(t *testing.T) {
 	config := LoggerConfig{
 		Name:    "test-logger",
-		Level:   LogLevelInfo,
+		Level:   features.INFO,
 		Async:   false,
 		Outputs: []OutputConfig{},
 	}
@@ -489,7 +491,7 @@ func TestLogger_OutputManagement(t *testing.T) {
 func TestLogger_Flush(t *testing.T) {
 	config := LoggerConfig{
 		Name:    "test-logger",
-		Level:   LogLevelInfo,
+		Level:   features.INFO,
 		Async:   false,
 		Outputs: []OutputConfig{},
 	}
@@ -517,7 +519,7 @@ func TestLogger_Flush(t *testing.T) {
 func TestLogger_Close(t *testing.T) {
 	config := LoggerConfig{
 		Name:    "test-logger",
-		Level:   LogLevelInfo,
+		Level:   features.INFO,
 		Async:   false,
 		Outputs: []OutputConfig{},
 	}
@@ -545,7 +547,7 @@ func TestLogger_Close(t *testing.T) {
 func TestLogger_WithError(t *testing.T) {
 	config := LoggerConfig{
 		Name:    "test-logger",
-		Level:   LogLevelInfo,
+		Level:   features.INFO,
 		Async:   false,
 		Outputs: []OutputConfig{},
 	}
@@ -576,7 +578,7 @@ func TestLogger_WithError(t *testing.T) {
 func TestLogger_WithTags(t *testing.T) {
 	config := LoggerConfig{
 		Name:    "test-logger",
-		Level:   LogLevelInfo,
+		Level:   features.INFO,
 		Async:   false,
 		Outputs: []OutputConfig{},
 	}
@@ -617,16 +619,16 @@ func TestLogger_WithTags(t *testing.T) {
 
 func TestLogLevel_String(t *testing.T) {
 	tests := []struct {
-		level    LogLevel
+		level    features.LogLevel
 		expected string
 	}{
-		{LogLevelTrace, "TRACE"},
-		{LogLevelDebug, "DEBUG"},
-		{LogLevelInfo, "INFO"},
-		{LogLevelWarn, "WARN"},
-		{LogLevelError, "ERROR"},
-		{LogLevelFatal, "FATAL"},
-		{LogLevel(999), "UNKNOWN"},
+		{features.TRACE, "TRACE"},
+		{features.DEBUG, "DEBUG"},
+		{features.INFO, "INFO"},
+		{features.WARN, "WARN"},
+		{features.ERROR, "ERROR"},
+		{features.FATAL, "FATAL"},
+		{features.LogLevel(999), "INFO"},
 	}
 
 	for _, test := range tests {
@@ -641,7 +643,7 @@ func TestLogEntry(t *testing.T) {
 	now := time.Now()
 	entry := &LogEntry{
 		Timestamp: now,
-		Level:     LogLevelInfo,
+		Level:     features.INFO,
 		Message:   "Test message",
 		Fields:    map[string]interface{}{"key": "value"},
 		Logger:    "test-logger",
@@ -657,7 +659,7 @@ func TestLogEntry(t *testing.T) {
 		Metadata:  map[string]interface{}{"meta": "data"},
 	}
 
-	if entry.Level != LogLevelInfo {
+	if entry.Level != features.INFO {
 		t.Errorf("Expected level info, got %v", entry.Level)
 	}
 

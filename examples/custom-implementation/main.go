@@ -29,7 +29,7 @@ func (cl *CustomLogger) Name() string {
 	return cl.name
 }
 
-func (cl *CustomLogger) Log(level interface{}, message string, fields map[string]interface{}) {
+func (cl *CustomLogger) Log(level features.LogLevel, message string, fields map[string]interface{}) {
 	fmt.Printf("[%s] %v - %s: %s\n", cl.prefix, level, cl.name, message)
 }
 
@@ -59,7 +59,7 @@ func main() {
 
 	// Test both loggers
 	for _, logger := range server.GetLoggers() {
-		logger.Log("INFO", "Testing logger implementation", map[string]interface{}{
+		logger.Log(features.INFO, "Testing logger implementation", map[string]interface{}{
 			"type": "test",
 		})
 	}

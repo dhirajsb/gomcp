@@ -10,12 +10,14 @@ import (
 
 // UserIdentity represents an authenticated user (simplified public version)
 type UserIdentity struct {
-	ID       string
-	Username string
-	Email    string
-	Roles    []string
-	Groups   []string
-	Claims   map[string]interface{}
+	ID        string
+	Username  string
+	Email     string
+	Roles     []string
+	Groups    []string
+	Claims    map[string]interface{}
+	IssuedAt  time.Time
+	ExpiresAt time.Time
 }
 
 // Request represents an MCP request (simplified public version)
@@ -24,10 +26,42 @@ type Request struct {
 	Params interface{}
 }
 
+// LogLevel represents logging levels
+type LogLevel int
+
+const (
+	TRACE LogLevel = iota
+	DEBUG
+	INFO
+	WARN
+	ERROR
+	FATAL
+)
+
+// String returns the string representation of the log level
+func (l LogLevel) String() string {
+	switch l {
+	case TRACE:
+		return "TRACE"
+	case DEBUG:
+		return "DEBUG"
+	case INFO:
+		return "INFO"
+	case WARN:
+		return "WARN"
+	case ERROR:
+		return "ERROR"
+	case FATAL:
+		return "FATAL"
+	default:
+		return "INFO"
+	}
+}
+
 // Logger interface for logging implementations
 type Logger interface {
 	Name() string
-	Log(level interface{}, message string, fields map[string]interface{})
+	Log(level LogLevel, message string, fields map[string]interface{})
 	Close() error
 }
 

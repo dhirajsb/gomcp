@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/dhirajsb/gomcp/internal/types"
+	"github.com/dhirajsb/gomcp/pkg/features"
 	"github.com/microcosm-cc/bluemonday"
 )
 
@@ -116,7 +116,7 @@ func (sv *StrictValidator) Name() string {
 	return sv.name
 }
 
-func (sv *StrictValidator) ValidateRequest(ctx context.Context, req *types.Request) error {
+func (sv *StrictValidator) ValidateRequest(ctx context.Context, req *features.Request) error {
 	if req == nil {
 		return fmt.Errorf("request cannot be nil")
 	}

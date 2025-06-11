@@ -14,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/dhirajsb/gomcp/pkg/features"
 )
 
 // ConsoleOutput writes to console (stdout/stderr)
@@ -21,7 +23,7 @@ type ConsoleOutput struct {
 	name      string
 	writer    io.Writer
 	formatter LogFormatter
-	level     LogLevel
+	level     features.LogLevel
 	mu        sync.Mutex
 }
 
@@ -78,7 +80,7 @@ type FileOutput struct {
 	filename    string
 	file        *os.File
 	formatter   LogFormatter
-	level       LogLevel
+	level       features.LogLevel
 	maxSize     int64 // Max file size in bytes
 	maxAge      int   // Max age in days
 	maxBackups  int   // Max number of backup files
@@ -244,7 +246,7 @@ type SyslogOutput struct {
 	name      string
 	writer    *syslog.Writer
 	formatter LogFormatter
-	level     LogLevel
+	level     features.LogLevel
 	mu        sync.Mutex
 }
 
@@ -295,15 +297,15 @@ func (o *SyslogOutput) Write(entry *LogEntry) error {
 
 	// Map log levels to syslog levels
 	switch entry.Level {
-	case LogLevelTrace, LogLevelDebug:
+	case features.TRACE, features.DEBUG:
 		return o.writer.Debug(message)
-	case LogLevelInfo:
+	case features.INFO:
 		return o.writer.Info(message)
-	case LogLevelWarn:
+	case features.WARN:
 		return o.writer.Warning(message)
-	case LogLevelError:
+	case features.ERROR:
 		return o.writer.Err(message)
-	case LogLevelFatal:
+	case features.FATAL:
 		return o.writer.Crit(message)
 	default:
 		return o.writer.Info(message)
@@ -342,7 +344,7 @@ type WebhookOutput struct {
 	url          string
 	client       *http.Client
 	formatter    LogFormatter
-	level        LogLevel
+	level        features.LogLevel
 	buffer       []*LogEntry
 	bufferSize   int
 	batchTimeout time.Duration
@@ -504,7 +506,7 @@ type ElasticsearchOutput struct {
 	index        string
 	client       *http.Client
 	formatter    LogFormatter
-	level        LogLevel
+	level        features.LogLevel
 	buffer       []*LogEntry
 	bufferSize   int
 	batchTimeout time.Duration

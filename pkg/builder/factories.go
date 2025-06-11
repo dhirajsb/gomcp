@@ -21,27 +21,27 @@ type PrometheusConfig = metrics.PrometheusConfig
 
 // ConsoleLogger creates a console logger with the specified level
 func ConsoleLogger(name, level string) features.Logger {
-	return wrapLogger(loggers.NewConsole(name, level))
+	return loggers.NewConsole(name, level)
 }
 
 // JSONLogger creates a JSON formatter logger with the specified level
 func JSONLogger(name, level string) features.Logger {
-	return wrapLogger(loggers.NewJSON(name, level))
+	return loggers.NewJSON(name, level)
 }
 
 // DebugLogger creates a console logger with debug level
 func DebugLogger(name string) features.Logger {
-	return wrapLogger(loggers.NewConsole(name, "debug"))
+	return loggers.NewConsole(name, "debug")
 }
 
 // InfoLogger creates a console logger with info level
 func InfoLogger(name string) features.Logger {
-	return wrapLogger(loggers.NewConsole(name, "info"))
+	return loggers.NewConsole(name, "info")
 }
 
 // ProductionLogger creates a JSON logger with info level
 func ProductionLogger(name string) features.Logger {
-	return wrapLogger(loggers.NewJSON(name, "info"))
+	return loggers.NewJSON(name, "info")
 }
 
 // Cache Factories
@@ -70,12 +70,12 @@ func LargeCache(name string) features.Cache {
 
 // JWTAuth creates a JWT authenticator with the specified secret
 func JWTAuth(name, secret string) features.Authenticator {
-	return wrapAuthenticator(auth.NewJWT(name, secret))
+	return auth.NewJWT(name, secret)
 }
 
 // JWTAuthWithConfig creates a JWT authenticator with full configuration
 func JWTAuthWithConfig(config *auth.JWTConfig) features.Authenticator {
-	return wrapAuthenticator(auth.NewJWTWithConfig(config))
+	return auth.NewJWTWithConfig(config)
 }
 
 // JWTAuthWithRoles creates a JWT authenticator that requires specific roles
@@ -87,7 +87,7 @@ func JWTAuthWithRoles(name, secret string, authorizedRoles []string) features.Au
 		RequireExp:      true,
 		RequireIat:      true,
 	}
-	return wrapAuthenticator(auth.NewJWTWithConfig(config))
+	return auth.NewJWTWithConfig(config)
 }
 
 // JWTAuthWithGroups creates a JWT authenticator that requires specific groups
@@ -99,7 +99,7 @@ func JWTAuthWithGroups(name, secret string, authorizedGroups []string) features.
 		RequireExp:       true,
 		RequireIat:       true,
 	}
-	return wrapAuthenticator(auth.NewJWTWithConfig(config))
+	return auth.NewJWTWithConfig(config)
 }
 
 // JWTAuthWithRolesAndGroups creates a JWT authenticator that requires specific roles or groups
@@ -112,7 +112,7 @@ func JWTAuthWithRolesAndGroups(name, secret string, authorizedRoles, authorizedG
 		RequireExp:       true,
 		RequireIat:       true,
 	}
-	return wrapAuthenticator(auth.NewJWTWithConfig(config))
+	return auth.NewJWTWithConfig(config)
 }
 
 // KeycloakJWTAuth creates a JWT authenticator configured for Keycloak
@@ -127,14 +127,14 @@ func KeycloakJWTAuth(name, secret, issuer, audience string, authorizedRoles []st
 		RequireIat:      true,
 		RequireNbf:      false,
 	}
-	return wrapAuthenticator(auth.NewJWTWithConfig(config))
+	return auth.NewJWTWithConfig(config)
 }
 
 // Security Factories
 
 // StrictValidator creates a strict security validator
 func StrictValidator(name string) features.SecurityValidator {
-	return wrapSecurityValidator(security.NewStrict(name))
+	return security.NewStrict(name)
 }
 
 // Telemetry Factories

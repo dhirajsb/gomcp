@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dhirajsb/gomcp/internal/types"
+	"github.com/dhirajsb/gomcp/pkg/features"
 )
 
 func TestNewStrict(t *testing.T) {
@@ -30,7 +30,7 @@ func TestStrictValidator_ValidateRequest_ValidRequest(t *testing.T) {
 	ctx := context.Background()
 
 	// Test with valid tools/list request
-	req := &types.Request{
+	req := &features.Request{
 		Method: "tools/list",
 		Params: nil,
 	}
@@ -55,7 +55,7 @@ func TestStrictValidator_ValidateRequest_EmptyMethod(t *testing.T) {
 	validator := NewStrict("test")
 	ctx := context.Background()
 
-	req := &types.Request{
+	req := &features.Request{
 		Method: "", // Empty method
 		Params: nil,
 	}
@@ -80,7 +80,7 @@ func TestStrictValidator_ValidateRequest_InvalidMethod(t *testing.T) {
 	}
 
 	for _, method := range invalidMethods {
-		req := &types.Request{
+		req := &features.Request{
 			Method: method,
 			Params: nil,
 		}
@@ -108,7 +108,7 @@ func TestStrictValidator_ValidateRequest_ValidMethods(t *testing.T) {
 	}
 
 	for _, method := range validMethods {
-		req := &types.Request{
+		req := &features.Request{
 			Method: method,
 			Params: nil,
 		}
@@ -143,7 +143,7 @@ func TestStrictValidator_ValidateRequest_SuspiciousParams(t *testing.T) {
 	}
 
 	for _, params := range suspiciousParams {
-		req := &types.Request{
+		req := &features.Request{
 			Method: "tools/call",
 			Params: params,
 		}
@@ -312,7 +312,7 @@ func TestStrictValidator_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	req := &types.Request{
+	req := &features.Request{
 		Method: "tools/list",
 		Params: nil,
 	}
@@ -338,7 +338,7 @@ func TestStrictValidator_LargePayload(t *testing.T) {
 	// Add some malicious content
 	largeParams["malicious"] = "<script>alert('xss')</script>"
 
-	req := &types.Request{
+	req := &features.Request{
 		Method: "tools/call",
 		Params: largeParams,
 	}
