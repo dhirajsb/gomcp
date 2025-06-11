@@ -4,23 +4,31 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
-// MemoryCache implements an in-memory cache
+// cacheItem represents an item in the cache with TTL
+type cacheItem struct {
+	value  interface{}
+	expiry time.Time
+}
+
+// MemoryCache implements an in-memory cache with LRU eviction
 type MemoryCache struct {
 	name    string
-	data    sync.Map
-	ttlMap  sync.Map
+	lruCache *lru.Cache[string, *cacheItem]
 	maxSize int
-	size    int64
 	mu      sync.RWMutex
 }
 
 // NewMemory creates a new in-memory cache
 func NewMemory(name string, maxSize int) *MemoryCache {
+	cache, _ := lru.New[string, *cacheItem](maxSize)
 	return &MemoryCache{
-		name:    name,
-		maxSize: maxSize,
+		name:     name,
+		lruCache: cache,
+		maxSize:  maxSize,
 	}
 }
 
@@ -29,72 +37,58 @@ func (mc *MemoryCache) Name() string {
 }
 
 func (mc *MemoryCache) Get(key string) (interface{}, error) {
-	// Check TTL
-	if ttlInterface, exists := mc.ttlMap.Load(key); exists {
-		if ttl, ok := ttlInterface.(time.Time); ok && time.Now().After(ttl) {
-			mc.Delete(key)
-			return nil, fmt.Errorf("key expired")
-		}
-	}
+	mc.mu.RLock()
+	defer mc.mu.RUnlock()
 
-	value, exists := mc.data.Load(key)
+	item, exists := mc.lruCache.Get(key)
 	if !exists {
 		return nil, fmt.Errorf("key not found")
 	}
 
-	return value, nil
+	// Check TTL
+	if !item.expiry.IsZero() && time.Now().After(item.expiry) {
+		mc.mu.RUnlock()
+		mc.mu.Lock()
+		mc.lruCache.Remove(key)
+		mc.mu.Unlock()
+		mc.mu.RLock()
+		return nil, fmt.Errorf("key expired")
+	}
+
+	return item.value, nil
 }
 
 func (mc *MemoryCache) Set(key string, value interface{}, ttl time.Duration) error {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
 
-	// Check if key already exists
-	_, exists := mc.data.Load(key)
-
-	// Simple size check (not exact) - only for new keys
-	if !exists && mc.maxSize > 0 && mc.size >= int64(mc.maxSize) {
-		return fmt.Errorf("cache full")
+	item := &cacheItem{
+		value: value,
 	}
 
-	mc.data.Store(key, value)
+	// Set expiry if TTL is provided
 	if ttl > 0 {
-		mc.ttlMap.Store(key, time.Now().Add(ttl))
+		item.expiry = time.Now().Add(ttl)
 	}
 
-	// Only increment size for new keys
-	if !exists {
-		mc.size++
-	}
-
+	// LRU cache handles eviction automatically
+	mc.lruCache.Add(key, item)
 	return nil
 }
 
 func (mc *MemoryCache) Delete(key string) error {
-	// Check if key exists before deletion
-	_, exists := mc.data.Load(key)
+	mc.mu.Lock()
+	defer mc.mu.Unlock()
 
-	mc.data.Delete(key)
-	mc.ttlMap.Delete(key)
-
-	// Only decrement size if key existed
-	if exists {
-		mc.mu.Lock()
-		mc.size--
-		mc.mu.Unlock()
-	}
-
+	mc.lruCache.Remove(key)
 	return nil
 }
 
 func (mc *MemoryCache) Clear() error {
-	mc.data = sync.Map{}
-	mc.ttlMap = sync.Map{}
-
 	mc.mu.Lock()
-	mc.size = 0
-	mc.mu.Unlock()
+	defer mc.mu.Unlock()
 
+	mc.lruCache.Purge()
 	return nil
 }
 

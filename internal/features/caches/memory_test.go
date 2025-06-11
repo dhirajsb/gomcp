@@ -17,8 +17,8 @@ func TestNewMemory(t *testing.T) {
 		t.Errorf("Expected maxSize 100, got %d", cache.maxSize)
 	}
 
-	if cache.size != 0 {
-		t.Errorf("Expected initial size 0, got %d", cache.size)
+	if cache.lruCache.Len() != 0 {
+		t.Errorf("Expected initial size 0, got %d", cache.lruCache.Len())
 	}
 }
 
@@ -211,12 +211,8 @@ func TestMemoryCache_Clear(t *testing.T) {
 	}
 
 	// Size should be 0
-	cache.mu.RLock()
-	size := cache.size
-	cache.mu.RUnlock()
-
-	if size != 0 {
-		t.Errorf("Expected size 0 after clear, got %d", size)
+	if cache.lruCache.Len() != 0 {
+		t.Errorf("Expected size 0 after clear, got %d", cache.lruCache.Len())
 	}
 }
 

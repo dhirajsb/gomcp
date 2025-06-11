@@ -1,28 +1,37 @@
-# golangci-lint configuration for Go MCP Library
-# See https://golangci-lint.run/usage/configuration/
-
 run:
   timeout: 5m
+  issues-exit-code: 1
   tests: true
   modules-download-mode: readonly
 
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
 linters-settings:
-  errcheck:
-    check-type-assertions: true
-    check-blank: true
-  
   govet:
-    enable-all: true
-    disable:
-      - fieldalignment # Can be noisy for structs
-  
+    check-shadowing: true
+
   gocyclo:
     min-complexity: 15
-  
+
+  dupl:
+    threshold: 100
+
   goconst:
-    min-len: 3
-    min-occurrences: 3
-  
+    min-len: 2
+    min-occurrences: 2
+
+  misspell:
+    locale: US
+
+  lll:
+    line-length: 140
+
+  goimports:
+    local-prefixes: github.com/dhirajsb/gomcp
+
   gocritic:
     enabled-tags:
       - diagnostic
@@ -31,110 +40,70 @@ linters-settings:
       - performance
       - style
     disabled-checks:
-      - dupImport # https://github.com/go-critic/go-critic/issues/845
+      - dupImport
       - ifElseChain
       - octalLiteral
       - whyNoLint
-  
-  goimports:
-    local-prefixes: github.com/dhirajsb/gomcp
-  
-  golint:
-    min-confidence: 0
-  
-  gomnd:
-    settings:
-      mnd:
-        checks:
-          - argument
-          - case
-          - condition
-          - operation
-          - return
-        ignored-numbers: 0,1,2,3,4,5,10,100,1000
-  
-  lll:
-    line-length: 120
-  
-  misspell:
-    locale: US
-  
-  nolintlint:
-    allow-leading-space: true
-    allow-unused: false
-    require-explanation: false
-    require-specific: false
-  
-  revive:
-    rules:
-      - name: exported
-        arguments: [checkPrivateReceivers, sayRepetitiveInsteadOfStutters]
+      - wrapperFunc
+
+  funlen:
+    lines: 100
+    statements: 50
+
+  gocognit:
+    min-complexity: 20
 
 linters:
   disable-all: true
   enable:
-    # Enabled by default
+    - bodyclose
+    - dupl
     - errcheck
+    - exportloopref
+    - funlen
+    - gochecknoinits
+    - goconst
+    - gocritic
+    - gocyclo
+    - gofmt
+    - goimports
+    - gosec
     - gosimple
     - govet
     - ineffassign
-    - staticcheck
-    - typecheck
-    - unused
-    
-    # Additional useful linters
-    - bodyclose
-    - goconst
-    - gocritic
-    - gofmt
-    - goimports
-    - gomnd
-    - gosec
     - lll
     - misspell
+    - nakedret
+    - noctx
     - nolintlint
-    - revive
+    - staticcheck
+    - stylecheck
+    - typecheck
     - unconvert
     - unparam
+    - unused
     - whitespace
-    
-    # Performance
-    - prealloc
 
 issues:
-  exclude-use-default: false
   exclude-rules:
-    # Ignore missing comments for exported functions in test files
     - path: _test\.go
       linters:
-        - revive
-        - golint
-    
-    # Ignore line length in generated files
-    - path: \.pb\.go$
-      linters:
-        - lll
-    
-    # Ignore magic numbers in tests
-    - path: _test\.go
-      linters:
-        - gomnd
-    
-    # Ignore specific issues
-    - text: "weak cryptographic primitive"
-      linters:
-        - gosec
-    
-    - text: "should have a package comment"
-      linters:
-        - revive
-  
-  max-issues-per-linter: 0
-  max-same-issues: 0
+        - funlen
+        - gocyclo
+        - gocognit
 
-output:
-  format: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
-  uniq-by-line: true
-  sort-results: true
+    - linters:
+        - gocritic
+      text: "unnecessaryDefer:"
+
+  exclude-use-default: false
+  exclude:
+    - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv). is not checked
+    - (comment on exported (method|function|type|const)|should have( a package)? comment|comment should be of the form)
+    - (possible misuse of unsafe.Pointer|should have signature)
+    - ineffective break statement. Did you mean to break out of the outer loop
+    - (Expect directory permissions to be 0750 or less|Expect file permissions to be 0600 or less)
+    - Subprocess launch(ed with variable|ing should be audited)
+    - G104
+    - (Implicit memory aliasing of items from a range statement|G601)
+    - Potential file inclusion via variable

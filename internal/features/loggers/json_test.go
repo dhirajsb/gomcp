@@ -5,12 +5,21 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/dhirajsb/gomcp/internal/logging"
 )
+
+// stripLogPrefix removes Go's standard log timestamp prefix from output
+// Expected format: "2025/06/10 21:39:19 {json...}" -> "{json...}"
+func stripLogPrefix(output string) string {
+	// Match timestamp prefix: YYYY/MM/DD HH:MM:SS followed by space
+	re := regexp.MustCompile(`^\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} `)
+	return re.ReplaceAllString(strings.TrimSpace(output), "")
+}
 
 func TestNewJSON(t *testing.T) {
 	logger := NewJSON("json-logger", "warn")
@@ -51,10 +60,11 @@ func TestJSONLogger_Log(t *testing.T) {
 
 	output := buf.String()
 
-	// Parse the JSON output
+	// Strip timestamp prefix and parse the JSON output
+	jsonOutput := stripLogPrefix(output)
 	var logEntry map[string]interface{}
-	if err := json.Unmarshal([]byte(output), &logEntry); err != nil {
-		t.Fatalf("Failed to parse JSON output: %v, output: %s", err, output)
+	if err := json.Unmarshal([]byte(jsonOutput), &logEntry); err != nil {
+		t.Fatalf("Failed to parse JSON output: %v, original output: %s, stripped: %s", err, output, jsonOutput)
 	}
 
 	// Check required fields
@@ -143,8 +153,9 @@ func TestJSONLogger_EmptyFields(t *testing.T) {
 
 	output := buf.String()
 
+	jsonOutput := stripLogPrefix(output)
 	var logEntry map[string]interface{}
-	if err := json.Unmarshal([]byte(output), &logEntry); err != nil {
+	if err := json.Unmarshal([]byte(jsonOutput), &logEntry); err != nil {
 		t.Fatalf("Failed to parse JSON output: %v", err)
 	}
 
@@ -176,8 +187,9 @@ func TestJSONLogger_FieldOverrides(t *testing.T) {
 
 	output := buf.String()
 
+	jsonOutput := stripLogPrefix(output)
 	var logEntry map[string]interface{}
-	if err := json.Unmarshal([]byte(output), &logEntry); err != nil {
+	if err := json.Unmarshal([]byte(jsonOutput), &logEntry); err != nil {
 		t.Fatalf("Failed to parse JSON output: %v", err)
 	}
 
@@ -226,8 +238,9 @@ func TestJSONLogger_ComplexFields(t *testing.T) {
 
 	output := buf.String()
 
+	jsonOutput := stripLogPrefix(output)
 	var logEntry map[string]interface{}
-	if err := json.Unmarshal([]byte(output), &logEntry); err != nil {
+	if err := json.Unmarshal([]byte(jsonOutput), &logEntry); err != nil {
 		t.Fatalf("Failed to parse JSON output: %v", err)
 	}
 

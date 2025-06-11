@@ -1,0 +1,234 @@
+name: Main Branch
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test-and-deploy:
+    name: Test and Deploy
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-1.23-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-1.23-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Run comprehensive tests
+      run: |
+        echo "Running full test suite..."
+        go test -v -race -coverprofile=coverage.out -coverpkg=./... ./...
+        
+        echo "Generating coverage report..."
+        go tool cover -html=coverage.out -o coverage.html
+        
+        COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | sed 's/%//')
+        echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
+        echo "Coverage: ${COVERAGE}%"
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.out
+        flags: unittests
+        name: codecov-umbrella
+
+    - name: Run security scan
+      run: |
+        echo "Running security scan..."
+        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+        gosec -fmt json -out gosec-report.json -stdout ./...
+
+    - name: Check vulnerabilities
+      run: |
+        echo "Checking for known vulnerabilities..."
+        go install golang.org/x/vuln/cmd/govulncheck@latest
+        govulncheck ./...
+
+    - name: Build release artifacts
+      run: |
+        echo "Building release artifacts..."
+        mkdir -p dist
+        
+        # Build examples for different platforms
+        PLATFORMS="linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64"
+        
+        for platform in $PLATFORMS; do
+          GOOS=${platform%/*}
+          GOARCH=${platform#*/}
+          echo "Building for $GOOS/$GOARCH..."
+          
+          for example in examples/*/; do
+            if [ -f "$example/main.go" ]; then
+              example_name=$(basename "$example")
+              output_name="gomcp-${example_name}-${GOOS}-${GOARCH}"
+              if [ "$GOOS" = "windows" ]; then
+                output_name="${output_name}.exe"
+              fi
+              
+              env GOOS=$GOOS GOARCH=$GOARCH go build \
+                -ldflags="-s -w" \
+                -o "dist/$output_name" \
+                "$example"
+            fi
+          done
+        done
+
+    - name: Generate changelog
+      run: |
+        echo "Generating changelog..."
+        if [ ! -f CHANGELOG.md ]; then
+          echo "# Changelog" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+        fi
+        
+        # Get commits since last release
+        LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+        if [ -n "$LAST_TAG" ]; then
+          git log --oneline "$LAST_TAG"..HEAD >> recent-changes.txt
+        else
+          git log --oneline >> recent-changes.txt
+        fi
+
+    - name: Create GitHub release
+      if: contains(github.event.head_commit.message, 'release:') || contains(github.event.head_commit.message, 'feat:')
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ github.run_number }}
+        name: Release v${{ github.run_number }}
+        body_path: recent-changes.txt
+        files: dist/*
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Update documentation
+      run: |
+        echo "Generating documentation..."
+        go install golang.org/x/tools/cmd/godoc@latest
+        
+        # Generate API documentation
+        mkdir -p docs/api
+        go doc -all ./... > docs/api/reference.txt
+
+    - name: Deploy documentation
+      if: github.ref == 'refs/heads/main'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs
+        publish_branch: gh-pages
+
+    - name: Notify on success
+      if: success()
+      run: |
+        echo "✅ Main branch workflow completed successfully"
+        echo "Coverage: ${{ env.COVERAGE }}%"
+        echo "Artifacts built for multiple platforms"
+
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "❌ Main branch workflow failed"
+        echo "Please check the logs for details"
+
+  performance-tracking:
+    name: Performance Tracking
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-1.23-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-1.23-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Run benchmarks
+      run: |
+        echo "Running comprehensive benchmarks..."
+        go test -bench=. -benchmem -count=5 -run=^$ ./... | tee benchmark-results.txt
+
+    - name: Store benchmark results
+      run: |
+        echo "Storing benchmark results..."
+        mkdir -p .github/benchmarks
+        cp benchmark-results.txt .github/benchmarks/benchmark-$(date +%Y%m%d-%H%M%S).txt
+        
+        # Keep only last 10 benchmark files
+        cd .github/benchmarks
+        ls -t benchmark-*.txt | tail -n +11 | xargs -r rm
+
+    - name: Update benchmark baseline
+      run: |
+        echo "Updating benchmark baseline..."
+        cp benchmark-results.txt .github/benchmark-baseline.txt
+
+  dependency-update:
+    name: Dependency Update Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Check for dependency updates
+      run: |
+        echo "Checking for available dependency updates..."
+        go list -u -m all | grep '\['
+        
+        echo "Checking for security updates..."
+        go install golang.org/x/vuln/cmd/govulncheck@latest
+        govulncheck ./...
+
+    - name: Generate dependency report
+      run: |
+        echo "Generating dependency report..."
+        echo "# Dependency Report" > dependency-report.md
+        echo "Generated on: $(date)" >> dependency-report.md
+        echo "" >> dependency-report.md
+        echo "## Current Dependencies" >> dependency-report.md
+        go list -m all >> dependency-report.md
+        echo "" >> dependency-report.md
+        echo "## Available Updates" >> dependency-report.md
+        go list -u -m all | grep '\[' >> dependency-report.md || echo "No updates available" >> dependency-report.md

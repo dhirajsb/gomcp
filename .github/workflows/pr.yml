@@ -1,0 +1,216 @@
+name: Pull Request
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate:
+    name: Validate PR
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-1.23-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-1.23-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Check for breaking changes
+      run: |
+        echo "Checking for potential breaking changes..."
+        # Check if any public API files have been modified
+        if git diff --name-only origin/main...HEAD | grep -E "(types|pkg|gomcp\.go)"; then
+          echo "⚠️  Public API files modified - please ensure backward compatibility"
+          git diff --name-only origin/main...HEAD | grep -E "(types|pkg|gomcp\.go)" | while read file; do
+            echo "  - $file"
+          done
+        else
+          echo "✅ No public API files modified"
+        fi
+
+    - name: Run comprehensive tests
+      run: |
+        echo "Running tests with race detection and coverage..."
+        go test -v -race -coverprofile=coverage.out -coverpkg=./... ./...
+        
+        echo "Generating coverage report..."
+        go tool cover -html=coverage.out -o coverage.html
+        
+        echo "Coverage summary:"
+        go tool cover -func=coverage.out | tail -1
+
+    - name: Check test coverage threshold
+      run: |
+        COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | sed 's/%//')
+        THRESHOLD=80
+        echo "Coverage: ${COVERAGE}%"
+        echo "Threshold: ${THRESHOLD}%"
+        if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+          echo "❌ Coverage ${COVERAGE}% is below threshold ${THRESHOLD}%"
+          exit 1
+        else
+          echo "✅ Coverage ${COVERAGE}% meets threshold"
+        fi
+
+    - name: Verify examples build
+      run: |
+        echo "Building all examples..."
+        for example in examples/*/; do
+          if [ -f "$example/main.go" ]; then
+            echo "Building $(basename "$example")..."
+            if ! go build -o /tmp/$(basename "$example") "$example"; then
+              echo "❌ Failed to build example: $(basename "$example")"
+              exit 1
+            fi
+          fi
+        done
+        echo "✅ All examples build successfully"
+
+    - name: Run static analysis
+      run: |
+        echo "Running go vet..."
+        go vet ./...
+        
+        echo "Running ineffassign..."
+        go install github.com/gordonklaus/ineffassign@latest
+        ineffassign ./...
+
+    - name: Check dependencies
+      run: |
+        echo "Checking for vulnerabilities..."
+        go install golang.org/x/vuln/cmd/govulncheck@latest
+        govulncheck ./...
+        
+        echo "Checking for outdated dependencies..."
+        go list -u -m all | grep '\['
+
+    - name: Validate commit messages
+      run: |
+        echo "Validating commit messages..."
+        git log --oneline origin/main..HEAD | while read line; do
+          if ! echo "$line" | grep -qE '^[a-f0-9]+ (feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?: .{1,50}'; then
+            echo "❌ Invalid commit message format: $line"
+            echo "Expected: type(scope): description"
+            echo "Types: feat, fix, docs, style, refactor, test, chore, perf, ci, build, revert"
+            exit 1
+          fi
+        done
+        echo "✅ All commit messages follow conventional format"
+
+  performance:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-1.23-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-1.23-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Run benchmarks
+      run: |
+        echo "Running benchmark tests..."
+        go test -bench=. -benchmem -run=^$ ./... | tee benchmark.txt
+        
+        # Check for performance regressions if baseline exists
+        if [ -f .github/benchmark-baseline.txt ]; then
+          echo "Comparing with baseline..."
+          go install golang.org/x/perf/cmd/benchstat@latest
+          benchstat .github/benchmark-baseline.txt benchmark.txt
+        else
+          echo "No baseline found, storing current results"
+          cp benchmark.txt .github/benchmark-baseline.txt
+        fi
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-1.23-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-1.23-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Run integration tests
+      env:
+        REDIS_URL: redis://localhost:6379
+      run: |
+        echo "Running integration tests..."
+        # Run tests that require external services
+        go test -v -tags=integration ./...
+
+    - name: Test examples
+      run: |
+        echo "Testing example applications..."
+        timeout 30s go run examples/simple/main.go &
+        PID=$!
+        sleep 5
+        if kill -0 $PID 2>/dev/null; then
+          echo "✅ Simple example starts successfully"
+          kill $PID
+        else
+          echo "❌ Simple example failed to start"
+          exit 1
+        fi
