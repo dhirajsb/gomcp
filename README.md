@@ -278,15 +278,152 @@ This library implements the Model Context Protocol specification:
 
 MIT License - see LICENSE file for details.
 
+## Configuration
+
+### Minimal Configuration
+
+For basic MCP server functionality with no enterprise features:
+
+```go
+server := gomcp.NewServer()
+// Core functionality only - no logging, caching, security, etc.
+```
+
+### Development Configuration
+
+Recommended setup for development with helpful debugging features:
+
+```go
+import "github.com/dhirajsb/gomcp/pkg/builder"
+
+server := gomcp.NewBuilder().
+    WithName("my-dev-server").
+    WithVersion("1.0.0").
+    
+    // Development logging - text format, debug level
+    WithLogger(gomcp.ConsoleLogger("dev-logger", "debug")).
+    
+    // Basic memory cache for development
+    WithCache(gomcp.MemoryCache("dev-cache", 1000)). // 1000 items max
+    
+    // Simple telemetry to stdout
+    WithTelemetry(gomcp.StdoutTelemetry("my-dev-server", "1.0.0")).
+    
+    Build()
+```
+
+### Production Configuration
+
+Recommended setup for production with security, monitoring, and performance features:
+
+```go
+import "github.com/dhirajsb/gomcp/pkg/builder"
+
+server := gomcp.NewBuilder().
+    WithName("my-prod-server").
+    WithVersion("1.0.0").
+    
+    // Production logging - JSON format, info level, async
+    WithLogger(gomcp.JSONLogger("prod-logger", "info")).
+    
+    // Production-ready cache with LRU eviction
+    WithCache(gomcp.MemoryCache("prod-cache", 10000)). // 10k items max
+    
+    // Security validation and sanitization
+    WithSecurity(gomcp.StrictValidator("security-validator")).
+    
+    // Production metrics with Prometheus endpoint
+    WithMetrics(gomcp.PrometheusMetricsWithHTTP("metrics", 9090, "/metrics")).
+    
+    // Distributed tracing to OTLP collector
+    WithTelemetry(gomcp.OTLPTelemetry("my-prod-server", "1.0.0", "http://otel-collector:4318")).
+    
+    Build()
+```
+
+### Enterprise Configuration with Authentication
+
+For production environments requiring authentication:
+
+```go
+import "github.com/dhirajsb/gomcp/pkg/builder"
+
+server := gomcp.NewBuilder().
+    WithName("secure-server").
+    WithVersion("1.0.0").
+    
+    // JWT authentication with RBAC
+    WithAuth(gomcp.JWTAuth("jwt-provider").
+        WithJWTSecret("your-secret-key").
+        WithRoleRequired("api-user")). // Require specific role
+    
+    // All production features
+    WithLogger(gomcp.JSONLogger("prod-logger", "info")).
+    WithCache(gomcp.MemoryCache("prod-cache", 10000)).
+    WithSecurity(gomcp.StrictValidator("security")).
+    WithMetrics(gomcp.PrometheusMetricsWithHTTP("metrics", 9090, "/metrics")).
+    WithTelemetry(gomcp.OTLPTelemetry("secure-server", "1.0.0", "http://otel-collector:4318")).
+    
+    Build()
+```
+
+### Configuration Options Summary
+
+| Feature | Development | Production | Enterprise |
+|---------|-------------|------------|------------|
+| **Logging** | Console/Debug | JSON/Info/Async | JSON/Info/Async |
+| **Caching** | Memory/1K items | Memory/10K items | Memory/Redis |
+| **Security** | Optional | Strict Validation | Strict + Auth |
+| **Metrics** | Basic | Prometheus/HTTP | Prometheus/HTTP |
+| **Telemetry** | Stdout | OTLP/Sampled | OTLP/Sampled |
+| **Authentication** | None | Optional | JWT/RBAC Required |
+
+### Environment-Specific Configuration
+
+Use environment variables for deployment-specific settings:
+
+```go
+import "os"
+
+var config struct {
+    Environment string
+    LogLevel    string
+    CacheSize   int
+    MetricsPort int
+}
+
+config.Environment = getEnv("ENVIRONMENT", "development")
+config.LogLevel = getEnv("LOG_LEVEL", "info")
+config.CacheSize = getEnvInt("CACHE_SIZE", 1000)
+config.MetricsPort = getEnvInt("METRICS_PORT", 9090)
+
+server := gomcp.NewBuilder().
+    WithName("my-server").
+    WithVersion("1.0.0").
+    WithLogger(gomcp.JSONLogger("logger", config.LogLevel)).
+    WithCache(gomcp.MemoryCache("cache", config.CacheSize)).
+    WithMetrics(gomcp.PrometheusMetricsWithHTTP("metrics", config.MetricsPort, "/metrics")).
+    Build()
+
+func getEnv(key, defaultValue string) string {
+    if value := os.Getenv(key); value != "" {
+        return value
+    }
+    return defaultValue
+}
+```
+
 ## Roadmap
 
 - [x] Core MCP protocol implementation
 - [x] Multiple transport support (stdio, SSE, HTTP)
 - [x] Function-based handlers
 - [x] Type safety and validation
-- [ ] Authentication and authorization
+- [x] Authentication and authorization (JWT/RBAC)
+- [x] Security validation and sanitization
+- [x] Caching with LRU eviction
+- [x] Comprehensive logging and metrics (Prometheus)
+- [x] Distributed tracing (OpenTelemetry)
 - [ ] Middleware support
-- [ ] Caching and performance optimization
-- [ ] Comprehensive logging and metrics
 - [ ] WebSocket transport
 - [ ] Client implementation
