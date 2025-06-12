@@ -51,3 +51,5 @@ require (
 	google.golang.org/grpc v1.59.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 )
+
+replace github.com/dhirajsb/gomcp => ./
