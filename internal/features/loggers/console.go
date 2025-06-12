@@ -47,4 +47,3 @@ func (cl *ConsoleLogger) Log(level features.LogLevel, message string, fields map
 func (cl *ConsoleLogger) Close() error {
 	return nil
 }
-

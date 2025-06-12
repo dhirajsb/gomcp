@@ -12,26 +12,25 @@ import (
 	"github.com/dhirajsb/gomcp/pkg/features"
 )
 
-
 // LogEntry represents a single log entry
 type LogEntry struct {
-	Timestamp time.Time                `json:"timestamp"`
-	Level     features.LogLevel        `json:"level"`
-	Message   string                   `json:"message"`
-	Fields    map[string]interface{}   `json:"fields,omitempty"`
-	Logger    string                   `json:"logger,omitempty"`
-	Component string                   `json:"component,omitempty"`
-	UserID    string                   `json:"user_id,omitempty"`
-	SessionID string                   `json:"session_id,omitempty"`
-	RequestID string                   `json:"request_id,omitempty"`
-	TraceID   string                   `json:"trace_id,omitempty"`
-	SpanID    string                   `json:"span_id,omitempty"`
-	Caller    *CallerInfo              `json:"caller,omitempty"`
-	Stack     string                   `json:"stack,omitempty"`
-	Duration  time.Duration            `json:"duration,omitempty"`
-	Error     string                   `json:"error,omitempty"`
-	Tags      []string                 `json:"tags,omitempty"`
-	Metadata  map[string]interface{}   `json:"metadata,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
+	Level     features.LogLevel      `json:"level"`
+	Message   string                 `json:"message"`
+	Fields    map[string]interface{} `json:"fields,omitempty"`
+	Logger    string                 `json:"logger,omitempty"`
+	Component string                 `json:"component,omitempty"`
+	UserID    string                 `json:"user_id,omitempty"`
+	SessionID string                 `json:"session_id,omitempty"`
+	RequestID string                 `json:"request_id,omitempty"`
+	TraceID   string                 `json:"trace_id,omitempty"`
+	SpanID    string                 `json:"span_id,omitempty"`
+	Caller    *CallerInfo            `json:"caller,omitempty"`
+	Stack     string                 `json:"stack,omitempty"`
+	Duration  time.Duration          `json:"duration,omitempty"`
+	Error     string                 `json:"error,omitempty"`
+	Tags      []string               `json:"tags,omitempty"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // CallerInfo holds information about the caller
@@ -112,7 +111,7 @@ type LogFormatter interface {
 // LoggerConfig holds logger configuration
 type LoggerConfig struct {
 	Name          string                 `json:"name"`
-	Level         features.LogLevel               `json:"level"`
+	Level         features.LogLevel      `json:"level"`
 	Component     string                 `json:"component"`
 	Outputs       []OutputConfig         `json:"outputs"`
 	Formatter     string                 `json:"formatter"` // "json", "text", "logfmt"
@@ -128,21 +127,21 @@ type LoggerConfig struct {
 type OutputConfig struct {
 	Name    string                 `json:"name"`
 	Type    string                 `json:"type"`  // "file", "stdout", "stderr", "syslog", "webhook", "elasticsearch"
-	Level   features.LogLevel               `json:"level"` // Minimum level for this output
+	Level   features.LogLevel      `json:"level"` // Minimum level for this output
 	Enabled bool                   `json:"enabled"`
 	Config  map[string]interface{} `json:"config"`
 }
 
 // LoggerStats holds logger statistics
 type LoggerStats struct {
-	Name           string                 `json:"name"`
-	Level          features.LogLevel               `json:"level"`
-	TotalEntries   int64                  `json:"total_entries"`
-	EntriesByLevel map[features.LogLevel]int64     `json:"entries_by_level"`
-	ErrorCount     int64                  `json:"error_count"`
-	LastEntry      time.Time              `json:"last_entry"`
-	Uptime         time.Duration          `json:"uptime"`
-	OutputStats    map[string]OutputStats `json:"output_stats"`
+	Name           string                      `json:"name"`
+	Level          features.LogLevel           `json:"level"`
+	TotalEntries   int64                       `json:"total_entries"`
+	EntriesByLevel map[features.LogLevel]int64 `json:"entries_by_level"`
+	ErrorCount     int64                       `json:"error_count"`
+	LastEntry      time.Time                   `json:"last_entry"`
+	Uptime         time.Duration               `json:"uptime"`
+	OutputStats    map[string]OutputStats      `json:"output_stats"`
 }
 
 // OutputStats holds output statistics

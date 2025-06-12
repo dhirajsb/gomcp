@@ -56,4 +56,3 @@ func (jl *JSONLogger) Log(level features.LogLevel, message string, fields map[st
 func (jl *JSONLogger) Close() error {
 	return nil
 }
-

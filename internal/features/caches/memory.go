@@ -16,10 +16,10 @@ type cacheItem struct {
 
 // MemoryCache implements an in-memory cache with LRU eviction
 type MemoryCache struct {
-	name    string
+	name     string
 	lruCache *lru.Cache[string, *cacheItem]
-	maxSize int
-	mu      sync.RWMutex
+	maxSize  int
+	mu       sync.RWMutex
 }
 
 // NewMemory creates a new in-memory cache
