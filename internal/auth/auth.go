@@ -7,9 +7,10 @@ import (
 	"net/http"
 	"time"
 
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/dhirajsb/gomcp/internal/telemetry"
 	"github.com/dhirajsb/gomcp/internal/types"
-	"go.opentelemetry.io/otel/trace"
 )
 
 // Common errors

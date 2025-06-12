@@ -243,7 +243,7 @@ const (
 	MethodLoggingMessage = "notifications/message"
 	MethodProgress       = "notifications/progress"
 	MethodRootsList      = "roots/list"
-	MethodCancelled      = "notifications/cancelled"
+	MethodCancelled      = "notifications/canceled"
 )
 
 // Error codes

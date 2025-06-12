@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"sync"
 
+	"net/http"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"net/http"
 )
 
 // PrometheusProvider implements a Prometheus metrics provider

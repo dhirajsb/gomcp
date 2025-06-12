@@ -308,7 +308,7 @@ func TestStrictValidator_SanitizeParams_DeepSanitization(t *testing.T) {
 func TestStrictValidator_ContextCancellation(t *testing.T) {
 	validator := NewStrict("test")
 
-	// Create a cancelled context
+	// Create a canceled context
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 

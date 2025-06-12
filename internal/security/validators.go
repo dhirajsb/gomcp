@@ -12,8 +12,9 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/dhirajsb/gomcp/internal/telemetry"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/dhirajsb/gomcp/internal/telemetry"
 )
 
 // SecurityLevel represents the severity of a security issue

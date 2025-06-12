@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dhirajsb/gomcp/pkg/features"
 	"github.com/golang-jwt/jwt/v5"
+
+	"github.com/dhirajsb/gomcp/pkg/features"
 )
 
 func TestNewJWT(t *testing.T) {

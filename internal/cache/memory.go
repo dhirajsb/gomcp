@@ -8,8 +8,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/dhirajsb/gomcp/internal/telemetry"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/dhirajsb/gomcp/internal/telemetry"
 )
 
 // MemoryCache implements an in-memory cache with LRU eviction

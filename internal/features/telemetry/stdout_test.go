@@ -102,15 +102,15 @@ func TestStdoutTelemetryProvider_Shutdown(t *testing.T) {
 func TestStdoutTelemetryProvider_ShutdownWithCancelledContext(t *testing.T) {
 	provider := NewStdout("test")
 
-	// Create cancelled context
+	// Create canceled context
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	// Shutdown with cancelled context should handle gracefully
+	// Shutdown with canceled context should handle gracefully
 	err := provider.Shutdown(ctx)
 	// Implementation may return context.Canceled or handle it gracefully
 	if err != nil && err != context.Canceled {
-		t.Errorf("Unexpected error from shutdown with cancelled context: %v", err)
+		t.Errorf("Unexpected error from shutdown with canceled context: %v", err)
 	}
 }
 

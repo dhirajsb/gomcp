@@ -7,8 +7,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/dhirajsb/gomcp/pkg/features"
 	"github.com/microcosm-cc/bluemonday"
+
+	"github.com/dhirajsb/gomcp/pkg/features"
 )
 
 // StrictValidator implements strict security validation

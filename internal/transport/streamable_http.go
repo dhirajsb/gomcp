@@ -196,7 +196,7 @@ func (t *StreamableHTTPTransport) handleSingleRequest(w http.ResponseWriter, r *
 		case <-time.After(30 * time.Second):
 			http.Error(w, "Request timeout", http.StatusRequestTimeout)
 		case <-r.Context().Done():
-			http.Error(w, "Request cancelled", http.StatusRequestTimeout)
+			http.Error(w, "Request canceled", http.StatusRequestTimeout)
 		}
 	default:
 		http.Error(w, "Server busy", http.StatusServiceUnavailable)

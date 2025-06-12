@@ -385,7 +385,7 @@ func TestMethodConstants(t *testing.T) {
 		MethodLoggingMessage: "notifications/message",
 		MethodProgress:       "notifications/progress",
 		MethodRootsList:      "roots/list",
-		MethodCancelled:      "notifications/cancelled",
+		MethodCancelled:      "notifications/canceled",
 	}
 
 	for constant, expected := range expectedMethods {

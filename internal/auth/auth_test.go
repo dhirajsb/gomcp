@@ -193,7 +193,7 @@ func TestAuthManager_AuthenticateRequest_Disabled(t *testing.T) {
 	rbac := NewMockRBACManager()
 	manager := NewAuthManager(config, rbac)
 
-	req, _ := http.NewRequest("GET", "/", nil)
+	req, _ := http.NewRequest("GET", "/", http.NoBody)
 	ctx := context.Background()
 
 	user, err := manager.AuthenticateRequest(ctx, req)
@@ -215,7 +215,7 @@ func TestAuthManager_AuthenticateRequest_NoProvider(t *testing.T) {
 	rbac := NewMockRBACManager()
 	manager := NewAuthManager(config, rbac)
 
-	req, _ := http.NewRequest("GET", "/", nil)
+	req, _ := http.NewRequest("GET", "/", http.NoBody)
 	ctx := context.Background()
 
 	user, err := manager.AuthenticateRequest(ctx, req)
@@ -248,7 +248,7 @@ func TestAuthManager_AuthenticateRequest_Success(t *testing.T) {
 	manager.RegisterProvider(provider)
 
 	// Create request with valid token
-	req, _ := http.NewRequest("GET", "/", nil)
+	req, _ := http.NewRequest("GET", "/", http.NoBody)
 	req.Header.Set("Authorization", "Bearer valid-token")
 	ctx := context.Background()
 
@@ -276,7 +276,7 @@ func TestAuthManager_AuthenticateRequest_InvalidToken(t *testing.T) {
 	manager.RegisterProvider(provider)
 
 	// Create request with invalid token
-	req, _ := http.NewRequest("GET", "/", nil)
+	req, _ := http.NewRequest("GET", "/", http.NoBody)
 	req.Header.Set("Authorization", "Bearer invalid-token")
 	ctx := context.Background()
 
@@ -542,7 +542,7 @@ func TestAuthManager_DefaultRole(t *testing.T) {
 	manager.RegisterProvider(provider)
 
 	// Create request with valid token
-	req, _ := http.NewRequest("GET", "/", nil)
+	req, _ := http.NewRequest("GET", "/", http.NoBody)
 	req.Header.Set("Authorization", "Bearer valid-token")
 	ctx := context.Background()
 

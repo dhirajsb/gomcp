@@ -11,11 +11,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-playground/validator/v10"
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/dhirajsb/gomcp/internal/telemetry"
 	"github.com/dhirajsb/gomcp/internal/transport"
 	"github.com/dhirajsb/gomcp/internal/types"
-	"github.com/go-playground/validator/v10"
-	"go.opentelemetry.io/otel/trace"
 )
 
 // Handler interface for all MCP handlers

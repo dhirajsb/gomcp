@@ -322,7 +322,7 @@ func TestPrometheusProvider_HTTPHandler(t *testing.T) {
 	handler := provider.GetHTTPHandler()
 
 	// Create test HTTP request
-	req := httptest.NewRequest("GET", "/metrics", nil)
+	req := httptest.NewRequest("GET", "/metrics", http.NoBody)
 	w := httptest.NewRecorder()
 
 	// Handle request

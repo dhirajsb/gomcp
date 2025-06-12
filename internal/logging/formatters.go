@@ -310,11 +310,11 @@ func (f *TextFormatter) writeValue(buf *bytes.Buffer, value interface{}) {
 			buf.WriteString(v)
 		}
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		buf.WriteString(fmt.Sprintf("%d", v))
+		fmt.Fprintf(buf, "%d", v)
 	case float32, float64:
-		buf.WriteString(fmt.Sprintf("%g", v))
+		fmt.Fprintf(buf, "%g", v)
 	case bool:
-		buf.WriteString(fmt.Sprintf("%t", v))
+		fmt.Fprintf(buf, "%t", v)
 	case time.Time:
 		buf.WriteString(v.Format(time.RFC3339))
 	case time.Duration:
@@ -324,7 +324,7 @@ func (f *TextFormatter) writeValue(buf *bytes.Buffer, value interface{}) {
 		if data, err := json.Marshal(v); err == nil {
 			buf.Write(data)
 		} else {
-			buf.WriteString(fmt.Sprintf("%+v", v))
+			fmt.Fprintf(buf, "%+v", v)
 		}
 	}
 }
@@ -458,11 +458,11 @@ func (f *LogfmtFormatter) writeKV(buf *bytes.Buffer, key string, value interface
 			buf.WriteString(v)
 		}
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		buf.WriteString(fmt.Sprintf("%d", v))
+		fmt.Fprintf(buf, "%d", v)
 	case float32, float64:
-		buf.WriteString(fmt.Sprintf("%g", v))
+		fmt.Fprintf(buf, "%g", v)
 	case bool:
-		buf.WriteString(fmt.Sprintf("%t", v))
+		fmt.Fprintf(buf, "%t", v)
 	case time.Time:
 		buf.WriteString(v.Format(time.RFC3339))
 	case time.Duration:
