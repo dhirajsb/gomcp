@@ -153,28 +153,14 @@ jobs:
         mkdir -p dist
         
         VERSION="${{ needs.validate-version.outputs.version }}"
-        PLATFORMS="linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64"
         
-        for platform in $PLATFORMS; do
-          GOOS=${platform%/*}
-          GOARCH=${platform#*/}
-          echo "Building for $GOOS/$GOARCH..."
-          
-          for example in examples/*/; do
-            if [ -f "$example/main.go" ]; then
-              example_name=$(basename "$example")
-              output_name="gomcp-${example_name}-${GOOS}-${GOARCH}"
-              if [ "$GOOS" = "windows" ]; then
-                output_name="${output_name}.exe"
-              fi
-              
-              env GOOS=$GOOS GOARCH=$GOARCH go build \
-                -ldflags="-s -w -X main.version=${VERSION}" \
-                -o "dist/$output_name" \
-                "$example"
-            fi
-          done
-        done
+        # Create source archive
+        git archive --format=tar.gz --prefix=gomcp-${VERSION#v}/ HEAD > dist/gomcp-${VERSION#v}-source.tar.gz
+        
+        # Create zip archive for Windows users
+        git archive --format=zip --prefix=gomcp-${VERSION#v}/ HEAD > dist/gomcp-${VERSION#v}-source.zip
+        
+        echo "Created source archives for version ${VERSION}"
 
     - name: Generate checksums
       run: |

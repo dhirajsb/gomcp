@@ -65,34 +65,18 @@ jobs:
         go install golang.org/x/vuln/cmd/govulncheck@latest
         govulncheck ./...
 
-    - name: Build release artifacts
+    - name: Prepare release artifacts
       run: |
-        echo "Building release artifacts..."
+        echo "Preparing release artifacts..."
         mkdir -p dist
         
-        # Build examples for different platforms
-        PLATFORMS="linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64"
+        # Create source archive
+        git archive --format=tar.gz --prefix=gomcp/ HEAD > dist/gomcp-source.tar.gz
         
-        for platform in $PLATFORMS; do
-          GOOS=${platform%/*}
-          GOARCH=${platform#*/}
-          echo "Building for $GOOS/$GOARCH..."
-          
-          for example in examples/*/; do
-            if [ -f "$example/main.go" ]; then
-              example_name=$(basename "$example")
-              output_name="gomcp-${example_name}-${GOOS}-${GOARCH}"
-              if [ "$GOOS" = "windows" ]; then
-                output_name="${output_name}.exe"
-              fi
-              
-              env GOOS=$GOOS GOARCH=$GOARCH go build \
-                -ldflags="-s -w" \
-                -o "dist/$output_name" \
-                "$example"
-            fi
-          done
-        done
+        # Create checksums for source
+        cd dist
+        sha256sum gomcp-source.tar.gz > checksums.txt
+        echo "Source archive created: gomcp-source.tar.gz"
 
     - name: Generate changelog
       run: |
