@@ -48,12 +48,10 @@ jobs:
         flags: unittests
         name: codecov-umbrella
 
-    - name: Run security scan
-      run: |
-        echo "Running security scan..."
-        make tools
-        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
-        gosec -fmt json -out gosec-report.json -stdout ./...
+    - name: Run Gosec Security Scanner
+      uses: securego/gosec@master
+      with:
+        args: '-no-fail -fmt sarif -out gosec.sarif ./...'
 
     - name: Check vulnerabilities
       run: |
