@@ -61,15 +61,19 @@ install: ## Install project dependencies
 build: clean ## Build the library
 	@echo "$(BLUE)Building library...$(RESET)"
 	@mkdir -p $(BUILD_DIR)
-	go build $(BUILD_FLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./...
+	go build $(BUILD_FLAGS) ./pkg/... ./internal/...
 
 .PHONY: build-examples
 build-examples: ## Build all example applications
 	@echo "$(BLUE)Building examples...$(RESET)"
 	@mkdir -p $(BUILD_DIR)/examples
-	go build $(BUILD_FLAGS) -o $(BUILD_DIR)/examples/simple ./examples/simple
-	go build $(BUILD_FLAGS) -o $(BUILD_DIR)/examples/typed ./examples/typed  
-	go build $(BUILD_FLAGS) -o $(BUILD_DIR)/examples/http ./examples/http
+	@for example in examples/*/; do \
+		if [ -f "$$example/main.go" ]; then \
+			example_name=$$(basename "$$example"); \
+			echo "Building example: $$example_name"; \
+			go build $(BUILD_FLAGS) -o $(BUILD_DIR)/examples/$$example_name ./$$example; \
+		fi; \
+	done
 	@echo "$(GREEN)Examples built successfully!$(RESET)"
 
 .PHONY: run-simple

@@ -31,39 +31,34 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-1.23-
 
-    - name: Download dependencies
-      run: go mod download
-
-    - name: Run comprehensive tests
+    - name: Install dependencies and run comprehensive tests
       run: |
+        make install
         echo "Running full test suite..."
-        go test -v -race -coverprofile=coverage.out -coverpkg=./... ./...
+        make test-coverage
         
-        echo "Generating coverage report..."
-        go tool cover -html=coverage.out -o coverage.html
-        
-        COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}' | sed 's/%//')
+        COVERAGE=$(go tool cover -func=coverage/coverage.out | tail -1 | awk '{print $3}' | sed 's/%//')
         echo "COVERAGE=$COVERAGE" >> $GITHUB_ENV
         echo "Coverage: ${COVERAGE}%"
 
     - name: Upload coverage reports
       uses: codecov/codecov-action@v4
       with:
-        file: ./coverage.out
+        file: ./coverage/coverage.out
         flags: unittests
         name: codecov-umbrella
 
     - name: Run security scan
       run: |
         echo "Running security scan..."
+        make tools
         go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
         gosec -fmt json -out gosec-report.json -stdout ./...
 
     - name: Check vulnerabilities
       run: |
         echo "Checking for known vulnerabilities..."
-        go install golang.org/x/vuln/cmd/govulncheck@latest
-        govulncheck ./...
+        make vuln
 
     - name: Prepare release artifacts
       run: |
@@ -148,13 +143,11 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-1.23-
 
-    - name: Download dependencies
-      run: go mod download
-
-    - name: Run benchmarks
+    - name: Install dependencies and run benchmarks
       run: |
+        make install
         echo "Running comprehensive benchmarks..."
-        go test -bench=. -benchmem -count=5 -run=^$ ./... | tee benchmark-results.txt
+        make test-bench | tee benchmark-results.txt
 
     - name: Store benchmark results
       run: |
@@ -186,12 +179,12 @@ jobs:
 
     - name: Check for dependency updates
       run: |
+        make install
         echo "Checking for available dependency updates..."
         go list -u -m all | grep '\['
         
         echo "Checking for security updates..."
-        go install golang.org/x/vuln/cmd/govulncheck@latest
-        govulncheck ./...
+        make vuln
 
     - name: Generate dependency report
       run: |

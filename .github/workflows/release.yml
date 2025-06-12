@@ -100,25 +100,23 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-1.23-
 
-    - name: Download dependencies
-      run: go mod download
-
-    - name: Run comprehensive tests
+    - name: Install dependencies and run comprehensive tests
       run: |
+        make install
         echo "Running full test suite..."
-        go test -v -race -coverprofile=coverage.out -coverpkg=./... ./...
+        make test-coverage
 
     - name: Run security scan
       run: |
         echo "Running security scan..."
+        make tools
         go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
         gosec ./...
 
     - name: Check vulnerabilities
       run: |
         echo "Checking for known vulnerabilities..."
-        go install golang.org/x/vuln/cmd/govulncheck@latest
-        govulncheck ./...
+        make vuln
 
   build:
     name: Build Release Artifacts
@@ -144,8 +142,8 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-1.23-
 
-    - name: Download dependencies
-      run: go mod download
+    - name: Install dependencies
+      run: make install
 
     - name: Build release artifacts
       run: |
