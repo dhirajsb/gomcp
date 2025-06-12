@@ -8,6 +8,7 @@ GO_VERSION = 1.21
 
 # Build configuration
 BUILD_DIR = build
+BIN_DIR = bin
 BINARY_NAME = $(PROJECT_NAME)
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BUILD_TIME = $(shell date -u '+%Y-%m-%d_%H:%M:%S')
@@ -17,13 +18,19 @@ COMMIT = $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 LDFLAGS = -ldflags "-X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME) -X main.commit=$(COMMIT)"
 BUILD_FLAGS = -v $(LDFLAGS)
 
+# Tool paths
+GOBIN = $(shell pwd)/$(BIN_DIR)
+PATH := $(GOBIN):$(PATH)
+export GOBIN
+export PATH
+
 # Coverage configuration
 COVERAGE_DIR = coverage
 COVERAGE_FILE = $(COVERAGE_DIR)/coverage.out
 COVERAGE_HTML = $(COVERAGE_DIR)/coverage.html
 
 # Linting and formatting
-GOLANGCI_LINT_VERSION = v1.55.2
+GOLANGCI_LINT_VERSION = v1.61.0
 
 # Colors for output
 RED = \033[0;31m
@@ -133,21 +140,23 @@ vet: ## Run go vet
 .PHONY: lint
 lint: ## Run golangci-lint
 	@echo "$(BLUE)Running golangci-lint...$(RESET)"
-	@if ! command -v golangci-lint >/dev/null 2>&1; then \
+	@mkdir -p $(BIN_DIR)
+	@if ! test -f $(BIN_DIR)/golangci-lint; then \
 		echo "$(YELLOW)Installing golangci-lint...$(RESET)"; \
-		go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION); \
+		GOBIN=$(GOBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION); \
 	fi
-	golangci-lint run ./...
+	$(BIN_DIR)/golangci-lint run ./...
 	@echo "$(GREEN)Linting completed successfully!$(RESET)"
 
 .PHONY: lint-fix
 lint-fix: ## Run golangci-lint with auto-fix
 	@echo "$(BLUE)Running golangci-lint with auto-fix...$(RESET)"
-	@if ! command -v golangci-lint >/dev/null 2>&1; then \
+	@mkdir -p $(BIN_DIR)
+	@if ! test -f $(BIN_DIR)/golangci-lint; then \
 		echo "$(YELLOW)Installing golangci-lint...$(RESET)"; \
-		go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION); \
+		GOBIN=$(GOBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION); \
 	fi
-	golangci-lint run --fix ./...
+	$(BIN_DIR)/golangci-lint run --fix ./...
 
 .PHONY: tidy
 tidy: ## Tidy and verify go modules
@@ -176,11 +185,12 @@ docs: ## Generate documentation
 .PHONY: godoc
 godoc: ## Start local godoc server
 	@echo "$(BLUE)Starting godoc server on http://localhost:6060$(RESET)"
-	@if ! command -v godoc >/dev/null 2>&1; then \
+	@mkdir -p $(BIN_DIR)
+	@if ! test -f $(BIN_DIR)/godoc; then \
 		echo "$(YELLOW)Installing godoc...$(RESET)"; \
-		go install golang.org/x/tools/cmd/godoc@latest; \
+		GOBIN=$(GOBIN) go install golang.org/x/tools/cmd/godoc@latest; \
 	fi
-	godoc -http=:6060
+	$(BIN_DIR)/godoc -http=:6060
 
 ##@ Maintenance
 
@@ -189,6 +199,7 @@ clean: ## Clean build artifacts and cache
 	@echo "$(BLUE)Cleaning build artifacts...$(RESET)"
 	rm -rf $(BUILD_DIR)
 	rm -rf $(COVERAGE_DIR)
+	rm -rf $(BIN_DIR)
 	go clean -cache -testcache -modcache
 	@echo "$(GREEN)Clean completed!$(RESET)"
 
@@ -210,11 +221,12 @@ update-deps: ## Update all dependencies
 .PHONY: vuln
 vuln: ## Run Go vulnerability checker
 	@echo "$(BLUE)Running govulncheck...$(RESET)"
-	@if ! command -v govulncheck >/dev/null 2>&1; then \
+	@mkdir -p $(BIN_DIR)
+	@if ! test -f $(BIN_DIR)/govulncheck; then \
 		echo "$(YELLOW)Installing govulncheck...$(RESET)"; \
-		go install golang.org/x/vuln/cmd/govulncheck@latest; \
+		GOBIN=$(GOBIN) go install golang.org/x/vuln/cmd/govulncheck@latest; \
 	fi
-	govulncheck ./...
+	$(BIN_DIR)/govulncheck ./...
 	@echo "$(GREEN)Vulnerability check completed!$(RESET)"
 
 .PHONY: security-scan
@@ -303,10 +315,11 @@ deps: ## List project dependencies
 .PHONY: tools
 tools: ## Install development tools
 	@echo "$(BLUE)Installing development tools...$(RESET)"
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
-	go install golang.org/x/tools/cmd/godoc@latest
-	go install golang.org/x/vuln/cmd/govulncheck@latest
-	@echo "$(GREEN)Development tools installed!$(RESET)"
+	@mkdir -p $(BIN_DIR)
+	GOBIN=$(GOBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+	GOBIN=$(GOBIN) go install golang.org/x/tools/cmd/godoc@latest
+	GOBIN=$(GOBIN) go install golang.org/x/vuln/cmd/govulncheck@latest
+	@echo "$(GREEN)Development tools installed in $(BIN_DIR)!$(RESET)"
 
 # Default target
 .DEFAULT_GOAL := help

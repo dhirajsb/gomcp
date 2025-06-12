@@ -1,0 +1,334 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0, v1.1.0, v2.0.0)'
+        required: true
+        type: string
+      release_type:
+        description: 'Type of release'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+        - release
+        - prerelease
+      release_notes:
+        description: 'Release notes (optional - will auto-generate if empty)'
+        required: false
+        type: string
+
+jobs:
+  validate-version:
+    name: Validate Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      is_prerelease: ${{ steps.validate.outputs.is_prerelease }}
+    
+    steps:
+    - name: Validate Go version format
+      id: validate
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        
+        # Ensure version starts with 'v'
+        if [[ ! "$VERSION" =~ ^v ]]; then
+          VERSION="v$VERSION"
+        fi
+        
+        # Validate Go version format (vX.Y.Z or vX.Y.Z-pre.N)
+        if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+(\.[0-9]+)?)?$ ]]; then
+          echo "❌ Invalid Go version format: $VERSION"
+          echo "Expected format: vX.Y.Z or vX.Y.Z-pre.N (e.g., v1.0.0, v1.2.3-beta.1)"
+          exit 1
+        fi
+        
+        # Check if it's a prerelease
+        IS_PRERELEASE="false"
+        if [[ "$VERSION" =~ -[a-zA-Z0-9]+(\.[0-9]+)?$ ]] || [[ "${{ github.event.inputs.release_type }}" == "prerelease" ]]; then
+          IS_PRERELEASE="true"
+        fi
+        
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+        echo "✅ Version $VERSION is valid"
+
+  check-tag:
+    name: Check Tag
+    runs-on: ubuntu-latest
+    needs: validate-version
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Check if tag exists
+      run: |
+        TAG="${{ needs.validate-version.outputs.version }}"
+        if git tag -l | grep -q "^$TAG$"; then
+          echo "❌ Tag $TAG already exists"
+          exit 1
+        fi
+        echo "✅ Tag $TAG is available"
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: [validate-version, check-tag]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-1.23-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-1.23-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Run comprehensive tests
+      run: |
+        echo "Running full test suite..."
+        go test -v -race -coverprofile=coverage.out -coverpkg=./... ./...
+
+    - name: Run security scan
+      run: |
+        echo "Running security scan..."
+        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+        gosec ./...
+
+    - name: Check vulnerabilities
+      run: |
+        echo "Checking for known vulnerabilities..."
+        go install golang.org/x/vuln/cmd/govulncheck@latest
+        govulncheck ./...
+
+  build:
+    name: Build Release Artifacts
+    runs-on: ubuntu-latest
+    needs: [validate-version, test]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-1.23-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-1.23-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Build release artifacts
+      run: |
+        echo "Building release artifacts..."
+        mkdir -p dist
+        
+        VERSION="${{ needs.validate-version.outputs.version }}"
+        PLATFORMS="linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64"
+        
+        for platform in $PLATFORMS; do
+          GOOS=${platform%/*}
+          GOARCH=${platform#*/}
+          echo "Building for $GOOS/$GOARCH..."
+          
+          for example in examples/*/; do
+            if [ -f "$example/main.go" ]; then
+              example_name=$(basename "$example")
+              output_name="gomcp-${example_name}-${GOOS}-${GOARCH}"
+              if [ "$GOOS" = "windows" ]; then
+                output_name="${output_name}.exe"
+              fi
+              
+              env GOOS=$GOOS GOARCH=$GOARCH go build \
+                -ldflags="-s -w -X main.version=${VERSION}" \
+                -o "dist/$output_name" \
+                "$example"
+            fi
+          done
+        done
+
+    - name: Generate checksums
+      run: |
+        cd dist
+        sha256sum * > checksums.txt
+        echo "Generated checksums:"
+        cat checksums.txt
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-artifacts
+        path: dist/
+
+  generate-changelog:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+    needs: validate-version
+    outputs:
+      changelog: ${{ steps.changelog.outputs.changelog }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        VERSION="${{ needs.validate-version.outputs.version }}"
+        
+        # Use custom release notes if provided
+        if [ -n "${{ github.event.inputs.release_notes }}" ]; then
+          echo "Using custom release notes"
+          CHANGELOG="${{ github.event.inputs.release_notes }}"
+        else
+          echo "Auto-generating changelog..."
+          
+          # Get last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -n "$LAST_TAG" ]; then
+            echo "Generating changelog since $LAST_TAG"
+            RANGE="$LAST_TAG..HEAD"
+          else
+            echo "No previous tags found, generating full changelog"
+            RANGE="HEAD"
+          fi
+          
+          # Generate changelog with conventional commit format
+          CHANGELOG="## What's Changed\n\n"
+          
+          # Features
+          FEATURES=$(git log --oneline --grep="^feat" --grep="^feature" $RANGE | sed 's/^[a-f0-9]* /- /')
+          if [ -n "$FEATURES" ]; then
+            CHANGELOG="${CHANGELOG}### ✨ Features\n${FEATURES}\n\n"
+          fi
+          
+          # Bug fixes
+          FIXES=$(git log --oneline --grep="^fix" --grep="^bugfix" $RANGE | sed 's/^[a-f0-9]* /- /')
+          if [ -n "$FIXES" ]; then
+            CHANGELOG="${CHANGELOG}### 🐛 Bug Fixes\n${FIXES}\n\n"
+          fi
+          
+          # Documentation
+          DOCS=$(git log --oneline --grep="^docs" $RANGE | sed 's/^[a-f0-9]* /- /')
+          if [ -n "$DOCS" ]; then
+            CHANGELOG="${CHANGELOG}### 📚 Documentation\n${DOCS}\n\n"
+          fi
+          
+          # Other changes
+          OTHER=$(git log --oneline --invert-grep --grep="^feat" --grep="^fix" --grep="^docs" $RANGE | sed 's/^[a-f0-9]* /- /')
+          if [ -n "$OTHER" ]; then
+            CHANGELOG="${CHANGELOG}### 🔧 Other Changes\n${OTHER}\n\n"
+          fi
+          
+          # Contributors
+          CONTRIBUTORS=$(git log --format='%an' $RANGE | sort -u | sed 's/^/- @/' | tr '\n' ' ')
+          if [ -n "$CONTRIBUTORS" ]; then
+            CHANGELOG="${CHANGELOG}### 👥 Contributors\n${CONTRIBUTORS}\n\n"
+          fi
+        fi
+        
+        # Save changelog to file and output
+        echo -e "$CHANGELOG" > changelog.md
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        echo -e "$CHANGELOG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Upload changelog
+      uses: actions/upload-artifact@v4
+      with:
+        name: changelog
+        path: changelog.md
+
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [validate-version, build, generate-changelog]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: release-artifacts
+        path: dist/
+
+    - name: Download changelog
+      uses: actions/download-artifact@v4
+      with:
+        name: changelog
+        path: .
+
+    - name: Create Git tag
+      run: |
+        TAG="${{ needs.validate-version.outputs.version }}"
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -a "$TAG" -m "Release $TAG"
+        git push origin "$TAG"
+
+    - name: Create GitHub release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ needs.validate-version.outputs.version }}
+        name: Release ${{ needs.validate-version.outputs.version }}
+        body_path: changelog.md
+        files: dist/*
+        draft: false
+        prerelease: ${{ needs.validate-version.outputs.is_prerelease == 'true' }}
+        generate_release_notes: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Update Go module index
+      if: needs.validate-version.outputs.is_prerelease == 'false'
+      run: |
+        echo "Updating Go module proxy..."
+        curl -X POST "https://proxy.golang.org/github.com/${{ github.repository }}/@v/${{ needs.validate-version.outputs.version }}.info" || true
+
+  notify:
+    name: Notify Success
+    runs-on: ubuntu-latest
+    needs: [validate-version, create-release]
+    if: success()
+    
+    steps:
+    - name: Success notification
+      run: |
+        echo "🎉 Release ${{ needs.validate-version.outputs.version }} created successfully!"
+        echo "Release type: ${{ github.event.inputs.release_type }}"
+        echo "Prerelease: ${{ needs.validate-version.outputs.is_prerelease }}"
+        echo "View release: https://github.com/${{ github.repository }}/releases/tag/${{ needs.validate-version.outputs.version }}"

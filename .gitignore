@@ -45,6 +45,9 @@ gomcp
 build/
 dist/
 
+# Tools installed locally
+bin/
+
 # IDE files
 .vscode/
 .idea/

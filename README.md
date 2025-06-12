@@ -1,5 +1,14 @@
 # GoMCP - Go Library for Model Context Protocol
 
+[![Go Version](https://img.shields.io/github/go-mod/go-version/dhirajsb/gomcp?style=flat-square&logo=go)](https://go.dev/)
+[![CI Status](https://img.shields.io/github/actions/workflow/status/dhirajsb/gomcp/ci.yml?branch=main&style=flat-square&logo=github&label=CI)](https://github.com/dhirajsb/gomcp/actions/workflows/ci.yml)
+[![Code Coverage](https://img.shields.io/codecov/c/github/dhirajsb/gomcp?style=flat-square&logo=codecov)](https://codecov.io/gh/dhirajsb/gomcp)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dhirajsb/gomcp?style=flat-square)](https://goreportcard.com/report/github.com/dhirajsb/gomcp)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4?style=flat-square&logo=go)](https://godoc.org/github.com/dhirajsb/gomcp)
+[![License](https://img.shields.io/github/license/dhirajsb/gomcp?style=flat-square)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/dhirajsb/gomcp?style=flat-square&logo=github)](https://github.com/dhirajsb/gomcp/releases)
+[![Security](https://img.shields.io/snyk/vulnerabilities/github/dhirajsb/gomcp?style=flat-square&logo=snyk)](https://snyk.io/test/github/dhirajsb/gomcp)
+
 A powerful, type-safe Go library for building MCP (Model Context Protocol) servers with support for multiple transports and enterprise features.
 
 ## Features
